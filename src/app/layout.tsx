@@ -34,15 +34,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
-      <head>
-        {/* Prevent flash of wrong theme */}
-        <script
+      <body className="min-h-screen antialiased" suppressHydrationWarning>
+        {/* Inline script runs synchronously before body content is painted — no flash */}
+        {/* React 19 warns about this but it's harmless: the script runs during SSR/full reloads */}
+        <script // eslint-disable-line @next/next/no-before-interactive-script-component
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark')})()`,
+            __html: `try{var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
           }}
         />
-      </head>
-      <body className="min-h-screen antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

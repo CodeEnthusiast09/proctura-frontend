@@ -1,0 +1,44 @@
+// src/services/client/exams.ts
+import { api } from "@/lib/axios";
+import { InferType } from "yup";
+import type { examSchema, updateExamSchema } from "@/validations/exam";
+import type { questionSchema } from "@/validations/question";
+import type { testCaseSchema } from "@/validations/testCase";
+
+export const examsService = {
+  // Exams
+  list: (courseId?: string) =>
+    api.get("/api/exams", { params: courseId ? { course_id: courseId } : {} }),
+
+  get: (id: string) => api.get(`/api/exams/${id}`),
+
+  create: (payload: InferType<typeof examSchema>) =>
+    api.post("/api/exams", payload),
+
+  update: (id: string, payload: InferType<typeof updateExamSchema> & { status?: string }) =>
+    api.put(`/api/exams/${id}`, payload),
+
+  delete: (id: string) => api.delete(`/api/exams/${id}`),
+
+  results: (id: string) => api.get(`/api/exams/${id}/results`),
+
+  // Questions
+  addQuestion: (examId: string, payload: InferType<typeof questionSchema>) =>
+    api.post(`/api/exams/${examId}/questions`, payload),
+
+  updateQuestion: (questionId: string, payload: Partial<InferType<typeof questionSchema>>) =>
+    api.put(`/api/questions/${questionId}`, payload),
+
+  deleteQuestion: (questionId: string) =>
+    api.delete(`/api/questions/${questionId}`),
+
+  // Test cases
+  addTestCase: (questionId: string, payload: InferType<typeof testCaseSchema>) =>
+    api.post(`/api/questions/${questionId}/test-cases`, payload),
+
+  updateTestCase: (testCaseId: string, payload: Partial<InferType<typeof testCaseSchema>>) =>
+    api.put(`/api/test-cases/${testCaseId}`, payload),
+
+  deleteTestCase: (testCaseId: string) =>
+    api.delete(`/api/test-cases/${testCaseId}`),
+};

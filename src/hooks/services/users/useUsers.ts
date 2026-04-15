@@ -1,0 +1,89 @@
+"use client";
+// src/hooks/services/users/useUsers.ts
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { InferType } from "yup";
+import toast from "react-hot-toast";
+import { usersService } from "@/services/client/users";
+import { inviteLecturerSchema } from "@/validations/user";
+import type { ApiResponse, PaginatedResponse, User } from "@/interfaces";
+
+export const USERS_KEY = ["users"] as const;
+export const usersKey = (role?: string) =>
+  role ? [...USERS_KEY, { role }] : USERS_KEY;
+
+// ── Queries ───────────────────────────────────────────────────────────────────
+
+export function useUsers(role?: string) {
+  return useQuery<PaginatedResponse<User>>({
+    queryKey: usersKey(role),
+    queryFn: () => usersService.list(role),
+  });
+}
+
+// ── Mutations ─────────────────────────────────────────────────────────────────
+
+interface InviteResult {
+  id: string;
+  email: string;
+  inviteToken: string;
+}
+
+export function useInviteLecturer(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse<InviteResult>, Error, InferType<typeof inviteLecturerSchema>>({
+    mutationFn: (data) => usersService.inviteLecturer(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      toast.success("Invitation sent — lecturer will receive an email");
+      onSuccess?.();
+    },
+    onError: (e) => toast.error(e.message || "Failed to send invitation"),
+  });
+}
+
+interface ImportResult {
+  created: number;
+  skipped: number;
+}
+
+export function useImportStudents(onSuccess?: (result: ImportResult) => void) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse<ImportResult>, Error, File>({
+    mutationFn: (file) => usersService.importStudents(file),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      const result = res.data?.data;
+      if (result) {
+        toast.success(`Import complete: ${result.created} created, ${result.skipped} skipped`);
+        onSuccess?.(result);
+      }
+    },
+    onError: (e) => toast.error(e.message || "Failed to import students"),
+  });
+}
+
+export function useToggleUserActive(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse<User>, Error, { id: string; isActive: boolean }>({
+    mutationFn: ({ id, isActive }) => usersService.update(id, { isActive }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      toast.success(vars.isActive ? "User activated" : "User deactivated");
+      onSuccess?.();
+    },
+    onError: (e) => toast.error(e.message || "Failed to update user"),
+  });
+}
+
+export function useDeleteUser(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse, Error, string>({
+    mutationFn: (id) => usersService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      toast.success("User removed");
+      onSuccess?.();
+    },
+    onError: (e) => toast.error(e.message || "Failed to remove user"),
+  });
+}

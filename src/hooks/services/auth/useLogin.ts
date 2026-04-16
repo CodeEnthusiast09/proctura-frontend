@@ -20,7 +20,7 @@ export function useLogin() {
     mutationFn: (data) => authService.login(data),
     onSuccess: (res) => {
       if (res.data.success && res.data.data) {
-        const { token, user } = res.data.data;
+        const { accessToken: token, user } = res.data.data;
         storeInLocalStorage("token", token);
         storeInLocalStorage("user", user);
         toast.success(`Welcome back, ${user.firstName}`);

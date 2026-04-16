@@ -5,21 +5,21 @@ import type { inviteLecturerSchema } from "@/validations/user";
 
 export const usersService = {
   list: (role?: string, page = 1, limit = 50) =>
-    api.get("/api/users", { params: { ...(role ? { role } : {}), page, limit } }),
+    api.get("/users", { params: { ...(role ? { role } : {}), page, limit } }),
 
   inviteLecturer: (payload: InferType<typeof inviteLecturerSchema>) =>
-    api.post("/api/users/invite-lecturer", payload),
+    api.post("/users/invite-lecturer", payload),
 
   importStudents: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return api.post("/api/users/import-students", form, {
+    return api.post("/users/import-students", form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
 
   update: (id: string, payload: { isActive: boolean }) =>
-    api.put(`/api/users/${id}`, payload),
+    api.put(`/users/${id}`, payload),
 
-  delete: (id: string) => api.delete(`/api/users/${id}`),
+  delete: (id: string) => api.delete(`/users/${id}`),
 };

@@ -48,7 +48,7 @@ Web client for Proctura — a multitenancy online coding exam platform for unive
 
 ```bash
 # 1. Clone and enter the project
-git clone <repo-url>
+git clone git@github.com:CodeEnthusiast09/proctura-frontend.git
 cd proctura-frontend
 
 # 2. Copy env file and fill in your values

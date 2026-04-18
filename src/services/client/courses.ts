@@ -13,4 +13,13 @@ export const coursesService = {
     api.put(`/courses/${id}`, payload),
 
   delete: (id: string) => api.delete(`/courses/${id}`),
+
+  listEnrollments: (courseId: string) =>
+    api.get(`/courses/${courseId}/enrollments`),
+
+  enroll: (courseId: string, matricNumbers: string[]) =>
+    api.post(`/courses/${courseId}/enroll`, { matric_numbers: matricNumbers }),
+
+  unenroll: (courseId: string, studentId: string) =>
+    api.delete(`/courses/${courseId}/enrollments/${studentId}`),
 };

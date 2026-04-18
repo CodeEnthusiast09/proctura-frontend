@@ -28,6 +28,20 @@ export interface Course {
   createdAt: string;
 }
 
+export interface CourseEnrollment {
+  id: string;
+  courseId: string;
+  studentId: string;
+  enrolledAt: string;
+  student?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    matricNumber?: string;
+    email: string;
+  };
+}
+
 export interface Exam {
   id: string;
   tenantId: string;

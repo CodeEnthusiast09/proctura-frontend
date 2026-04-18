@@ -17,9 +17,15 @@ export interface SubmissionAnswer {
   questionId: string;
   code: string;
   score: number;
-  testResults?: string[];
+  testResults?: string;
   createdAt: string;
   updatedAt: string;
+  question?: {
+    id: string;
+    body: string;
+    points: number;
+    testCases?: { id: string; input?: string; expectedOutput: string; isHidden: boolean }[];
+  };
 }
 
 export interface Submission {
@@ -34,6 +40,31 @@ export interface Submission {
   maxScore: number;
   violationCount: number;
   answers?: SubmissionAnswer[];
+  exam?: { title: string; course?: { code: string } };
+  student?: { firstName: string; lastName: string; matricNumber?: string };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AllResultsRow extends Submission {
+  examTitle: string;
+  courseCode: string;
+}
+
+export interface RunCodeResult {
+  testCaseId: string;
+  passed: boolean;
+  input?: string;
+  expectedOutput: string;
+  actualOutput: string;
+  statusDesc: string;
+}
+
+export interface AllResultsFilters {
+  courseId?: string;
+  examId?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }

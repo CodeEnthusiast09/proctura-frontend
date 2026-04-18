@@ -11,15 +11,20 @@ import {
   ChevronRight,
   Loader2,
   Save,
+  Play,
+  X,
+  CircleCheck,
+  CircleX,
 } from "lucide-react";
 import { useExam } from "@/hooks/services/exams";
 import {
   useSaveAnswer,
   useSubmitExam,
   useLogViolation,
+  useRunCode,
 } from "@/hooks/services/submissions";
 import { retrieveFromLocalStorage } from "@/lib/localStorage";
-import type { Submission, Question } from "@/interfaces";
+import type { Submission, Question, RunCodeResult } from "@/interfaces";
 import toast from "react-hot-toast";
 
 // Lazy-load Monaco to avoid SSR issues
@@ -102,14 +107,18 @@ export default function ExamTakePage({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // ── Run Code state ──────────────────────────────────────────────────────────
+  const [runResults, setRunResults] = useState<RunCodeResult[] | null>(null);
+  const [showRunPanel, setShowRunPanel] = useState(false);
+
   // ── Mutations ───────────────────────────────────────────────────────────────
   const { mutate: saveAnswer } = useSaveAnswer();
-  const { mutate: submitExam, isPending: isSubmitting } = useSubmitExam(() => {
-    // Clear submission from localStorage on success
+  const { mutate: submitExam, isPending: isSubmitting } = useSubmitExam((submittedId) => {
     localStorage.removeItem(submissionKey(id));
-    router.replace(`/exam/${id}/result`);
+    router.replace(`/exam/${id}/result?sid=${submittedId}`);
   });
   const { mutate: logViolation } = useLogViolation();
+  const { mutate: runCode, isPending: isRunning } = useRunCode();
 
   // ── Init timer from server startedAt ───────────────────────────────────────
   useEffect(() => {
@@ -156,19 +165,46 @@ export default function ExamTakePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId, exam]);
 
-  // ── Anti-cheat: tab switch ──────────────────────────────────────────────────
+  // ── Anti-cheat: tab switch + window switch ─────────────────────────────────
+  const antiCheatEnabled = process.env.NEXT_PUBLIC_ANTI_CHEAT !== "false";
+
   useEffect(() => {
+    if (!antiCheatEnabled) return;
     function handleVisibilityChange() {
       if (document.hidden) recordViolation("tab_switch");
     }
+    function handleWindowBlur() {
+      if (!document.hidden) recordViolation("window_switch");
+    }
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
+    window.addEventListener("blur", handleWindowBlur);
+    return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleWindowBlur);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId]);
+  }, [submissionId, antiCheatEnabled]);
+
+  // ── Anti-cheat: fullscreen exit ───────────────────────────────────────────
+  useEffect(() => {
+    if (!antiCheatEnabled) return;
+    function handleFullscreenChange() {
+      if (!document.fullscreenElement) {
+        recordViolation("fullscreen_exit");
+        // Re-request fullscreen
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      }
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submissionId, antiCheatEnabled]);
 
   // ── Anti-cheat: clipboard ──────────────────────────────────────────────────
   useEffect(() => {
+    if (!antiCheatEnabled) return;
     function handleCopy() {
       recordViolation("copy");
     }
@@ -182,7 +218,7 @@ export default function ExamTakePage({
       document.removeEventListener("paste", handlePaste);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId]);
+  }, [submissionId, antiCheatEnabled]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -190,12 +226,19 @@ export default function ExamTakePage({
     if (!submissionId) return;
     violationRef.current += 1;
     setViolationCount(violationRef.current);
-    logViolation({ submissionId, reason });
 
     if (violationRef.current >= 3) {
       toast.error("3 violations reached — submitting automatically.");
-      handleAutoSubmit("3 violations");
+      // logViolation auto-submits on the backend; we just need to navigate after
+      logViolation(
+        { submissionId, reason },
+        {
+          onSuccess: () => handleAutoSubmit("3 violations"),
+          onError: () => handleAutoSubmit("3 violations"),
+        }
+      );
     } else {
+      logViolation({ submissionId, reason });
       toast.error(`Violation recorded: ${reason.replace("_", " ")} (${violationRef.current}/3)`);
     }
   }
@@ -227,10 +270,18 @@ export default function ExamTakePage({
     [submissionId, exam, currentIndex]
   );
 
-  function handleAutoSubmit(_reason?: string) {
+  function handleAutoSubmit(reason?: string) {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!submissionId) return;
-    // Save all answers before submitting
+
+    if (reason === "3 violations") {
+      // Backend already submitted via logViolation — just navigate
+      localStorage.removeItem(submissionKey(id));
+      router.replace(`/exam/${id}/result?sid=${submissionId}`);
+      return;
+    }
+
+    // Save all answers before submitting (timer expiry path)
     if (exam?.questions) {
       exam.questions.forEach((q) => {
         const code = answersRef.current[q.id] ?? "";
@@ -248,10 +299,29 @@ export default function ExamTakePage({
     submitExam(submissionId);
   }
 
+  function handleRunCode() {
+    if (!submissionId || !currentQuestion) return;
+    const code = answers[currentQuestion.id] ?? "";
+    if (!code.trim()) {
+      toast.error("Write some code first before running.");
+      return;
+    }
+    setShowRunPanel(true);
+    setRunResults(null);
+    runCode(
+      { submissionId, questionId: currentQuestion.id, code },
+      {
+        onSuccess: (res) => setRunResults(res.data?.data ?? []),
+        onError: () => toast.error("Failed to run code. Try again."),
+      }
+    );
+  }
+
   function switchQuestion(index: number) {
-    // Save current answer before switching
     saveCurrentAnswer(true);
     setCurrentIndex(index);
+    setRunResults(null);
+    setShowRunPanel(false);
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -350,22 +420,43 @@ export default function ExamTakePage({
         {/* Main editor area */}
         <div className="flex flex-col flex-1 min-w-0">
           {/* Question body */}
-          <div className="px-5 py-4 bg-[#161b22] border-b border-slate-700/60 flex-shrink-0 max-h-40 overflow-y-auto">
+          <div className="px-5 py-4 bg-[#161b22] border-b border-slate-700/60 flex-shrink-0 max-h-72 overflow-y-auto">
             {currentQuestion ? (
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Question {currentIndex + 1} of {questions.length}
-                    </span>
-                    <span className="text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded">
-                      {currentQuestion.points} pts
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                    {currentQuestion.body}
-                  </p>
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Question {currentIndex + 1} of {questions.length}
+                  </span>
+                  <span className="text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded">
+                    {currentQuestion.points} pts
+                  </span>
                 </div>
+                <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                  {currentQuestion.body}
+                </p>
+
+                {/* Public test cases as examples */}
+                {currentQuestion.testCases && currentQuestion.testCases.filter((tc) => !tc.isHidden).length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                      Examples
+                    </p>
+                    {currentQuestion.testCases.filter((tc) => !tc.isHidden).map((tc, i) => (
+                      <div key={tc.id} className="flex gap-2 text-xs font-mono">
+                        {tc.input != null && (
+                          <div className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-lg p-2.5">
+                            <p className="text-slate-500 mb-1">Input {i + 1}</p>
+                            <pre className="text-slate-300 whitespace-pre-wrap">{tc.input}</pre>
+                          </div>
+                        )}
+                        <div className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-lg p-2.5">
+                          <p className="text-slate-500 mb-1">Expected Output</p>
+                          <pre className="text-slate-300 whitespace-pre-wrap">{tc.expectedOutput}</pre>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-slate-500 text-sm">No questions in this exam.</p>
@@ -399,6 +490,74 @@ export default function ExamTakePage({
               />
             )}
           </div>
+
+          {/* Run Code Results Panel */}
+          {showRunPanel && (
+            <div className="h-48 flex-shrink-0 bg-[#0d1117] border-t border-slate-700/60 flex flex-col">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/60">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                  Test Results
+                </span>
+                <button
+                  onClick={() => setShowRunPanel(false)}
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-4 py-2">
+                {isRunning || !runResults ? (
+                  <div className="flex items-center gap-2 text-slate-400 text-sm h-full">
+                    <Loader2 size={14} className="animate-spin" />
+                    Running against public test cases…
+                  </div>
+                ) : runResults.length === 0 ? (
+                  <p className="text-slate-500 text-sm">
+                    No public test cases to run against.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {runResults.map((r, i) => (
+                      <div
+                        key={r.testCaseId}
+                        className={`flex items-start gap-3 p-2.5 rounded-lg border text-xs font-mono ${
+                          r.passed
+                            ? "bg-green-500/5 border-green-500/20"
+                            : "bg-red-500/5 border-red-500/20"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                          {r.passed ? (
+                            <CircleCheck size={13} className="text-green-400" />
+                          ) : (
+                            <CircleX size={13} className="text-red-400" />
+                          )}
+                          <span className={r.passed ? "text-green-400" : "text-red-400"}>
+                            Test {i + 1}
+                          </span>
+                        </div>
+                        {!r.passed && (
+                          <div className="flex gap-3 flex-1 min-w-0">
+                            <div className="min-w-0">
+                              <p className="text-slate-500 mb-0.5">Expected</p>
+                              <pre className="text-slate-300 whitespace-pre-wrap break-all">{r.expectedOutput}</pre>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-slate-500 mb-0.5">Got</p>
+                              <pre className="text-red-300 whitespace-pre-wrap break-all">{r.actualOutput || r.statusDesc}</pre>
+                            </div>
+                          </div>
+                        )}
+                        {r.passed && (
+                          <span className="text-green-400/70">Passed</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -444,6 +603,19 @@ export default function ExamTakePage({
             className="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-40 transition-colors text-slate-400 hover:text-slate-200"
           >
             <Save size={11} /> Save
+          </button>
+
+          <button
+            onClick={handleRunCode}
+            disabled={isRunning || !submissionId || !currentQuestion}
+            className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-600/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-600/25 disabled:opacity-40 transition-colors text-xs font-semibold"
+          >
+            {isRunning ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Play size={11} />
+            )}
+            Run Code
           </button>
         </div>
       </footer>

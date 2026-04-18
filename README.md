@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Proctura Frontend
+
+Web client for Proctura — a multitenancy online coding exam platform for universities. Students write and submit real code instead of writing on paper.
+
+## Stack
+
+- **Next.js** (App Router)
+- **TypeScript**
+- **Tailwind CSS**
+- **TanStack Query** (server state)
+- **Monaco Editor** (code editor)
+- **React Hook Form** + **Yup** (forms and validation)
+- **Axios** (HTTP client)
+
+## Features
+
+### Students
+- Browse and take exams they are enrolled in
+- Write code in a full Monaco editor with language support
+- Run code against visible test cases before submitting
+- Auto-save answers as they type
+- Anti-cheat detection (tab switch, clipboard) — auto-submits after 3 violations
+- View graded results with per-question breakdown
+
+### Lecturers
+- Create and manage courses
+- Enroll students into courses by matric number
+- Build exams with questions, test cases, and point values
+- Set exam language, duration, and availability window
+- View all student submissions with scores and violation counts
+- Review submitted code per student in a read-only editor
+- Override scores per question manually
+
+### All Roles
+- Login notification email on every sign-in (time, IP, location)
+- Forgot password / reset password flow
+- Dark mode
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- pnpm (detected from `pnpm-lock.yaml`)
+- Proctura backend running at the configured API URL
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 1. Clone and enter the project
+git clone <repo-url>
+cd proctura-frontend
+
+# 2. Copy env file and fill in your values
+cp .env.example .env.local
+
+# 3. Install dependencies
+pnpm install
+
+# 4. Start the dev server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable                   | Description                     | Example                            |
+|----------------------------|---------------------------------|------------------------------------|
+| `NEXT_PUBLIC_API_BASE_URL` | Backend API base URL            | `http://localhost:8080/api/v1`     |
+| `NEXT_PUBLIC_APP_URL`      | Frontend app URL                | `http://localhost:3000`            |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── (auth)/               — login, register, forgot/reset password, accept invite
+│   ├── (app)/dashboard/      — protected dashboard pages (courses, exams, results, users)
+│   └── (exam)/exam/[id]/     — exam flow (detail, take, result)
+├── components/               — globally reusable UI components
+├── hooks/
+│   ├── common/               — shared hooks (useCurrentUser, etc.)
+│   └── services/             — API hooks grouped by domain
+│       ├── auth/
+│       ├── courses/
+│       ├── exams/
+│       ├── submissions/
+│       ├── tenants/
+│       └── users/
+├── interfaces/               — TypeScript interfaces and types
+├── lib/                      — axios instance, query client config
+├── services/
+│   ├── client/               — client-side API calls
+│   └── server/               — server-side API calls
+└── validations/              — Yup schemas
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tenant Resolution
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+In production, the tenant is resolved from the subdomain (`unilag.proctura.com`).  
+In local dev, set the `X-Tenant-Subdomain` header — the axios instance handles this automatically via the `NEXT_PUBLIC_APP_URL` environment variable.
 
-## Deploy on Vercel
+## Commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm dev        # start development server
+pnpm build      # production build
+pnpm start      # start production server
+pnpm lint       # run ESLint
+```

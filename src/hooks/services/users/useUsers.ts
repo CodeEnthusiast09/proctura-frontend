@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
 import { usersService } from "@/services/client/users";
-import { inviteLecturerSchema } from "@/validations/user";
+import { inviteLecturerSchema, inviteStudentSchema } from "@/validations/user";
 import type { ApiResponse, PaginatedResponse, User } from "@/interfaces";
 
 export const USERS_KEY = ["users"] as const;
@@ -37,13 +37,26 @@ export function useInviteLecturer(onSuccess?: () => void) {
       toast.success("Invitation sent — lecturer will receive an email");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to send invitation"),
+    onError: () => {},
   });
 }
 
 interface ImportResult {
   created: number;
   skipped: number;
+}
+
+export function useInviteStudent(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse<InviteResult>, Error, InferType<typeof inviteStudentSchema>>({
+    mutationFn: (data) => usersService.inviteStudent(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      toast.success("Invitation sent — student will receive an email");
+      onSuccess?.();
+    },
+    onError: () => {},
+  });
 }
 
 export function useImportStudents(onSuccess?: (result: ImportResult) => void) {
@@ -58,7 +71,7 @@ export function useImportStudents(onSuccess?: (result: ImportResult) => void) {
         onSuccess?.(result);
       }
     },
-    onError: (e) => toast.error(e.message || "Failed to import students"),
+    onError: () => {},
   });
 }
 
@@ -71,7 +84,7 @@ export function useToggleUserActive(onSuccess?: () => void) {
       toast.success(vars.isActive ? "User activated" : "User deactivated");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to update user"),
+    onError: () => {},
   });
 }
 
@@ -84,6 +97,6 @@ export function useDeleteUser(onSuccess?: () => void) {
       toast.success("User removed");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to remove user"),
+    onError: () => {},
   });
 }

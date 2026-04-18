@@ -2,9 +2,11 @@
 // src/app/(exam)/exam/[id]/page.tsx
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, BookOpen, Code2, AlertCircle, Loader2 } from "lucide-react";
-import { useExam } from "@/hooks/services/exams";
-import { useStartExam } from "@/hooks/services/submissions";
+import Link from "next/link";
+import { Clock, BookOpen, Code2, AlertCircle, Loader2, Home } from "lucide-react";
+import { useExam, useAvailableExams } from "@/hooks/services/exams";
+import { useStartExam, useMySubmission } from "@/hooks/services/submissions";
+import { useCurrentUser } from "@/hooks/common/useCurrentUser";
 import { retrieveFromLocalStorage } from "@/lib/localStorage";
 import type { Submission } from "@/interfaces";
 
@@ -20,8 +22,16 @@ export default function ExamStartPage({
   const { id } = use(params);
   const router = useRouter();
 
+  const currentUser = useCurrentUser();
+  const isStudent = currentUser?.role === "student";
+
   const { data: examData, isLoading } = useExam(id);
   const exam = examData?.data?.data;
+
+  const { data: availableData, isLoading: isCheckingAccess } = useAvailableExams(isStudent);
+  const isEnrolled =
+    !isStudent ||
+    (availableData?.data?.data ?? []).some((e) => e.id === id);
 
   const [hasResumable, setHasResumable] = useState(false);
 
@@ -30,12 +40,25 @@ export default function ExamStartPage({
     if (stored?.status === "in_progress") setHasResumable(true);
   }, [id]);
 
+  // Redirect if student is not enrolled
+  useEffect(() => {
+    if (!isStudent || isCheckingAccess || isLoading) return;
+    if (!isEnrolled) {
+      router.replace("/dashboard/exams");
+    }
+  }, [isStudent, isCheckingAccess, isLoading, isEnrolled, router]);
+
+  const { data: mySubmissionData, isLoading: isCheckingSubmission } = useMySubmission(id);
+  const existingSubmission = mySubmissionData?.data?.data;
+  const alreadySubmitted = !!existingSubmission && existingSubmission.status !== "in_progress";
+
   const { mutate: startExam, isPending } = useStartExam((submission) => {
     localStorage.setItem(submissionKey(id), JSON.stringify(submission));
     router.push(`/exam/${id}/take`);
   });
 
   function handleStart() {
+    document.documentElement.requestFullscreen?.().catch(() => {});
     if (hasResumable) {
       router.push(`/exam/${id}/take`);
     } else {
@@ -43,13 +66,16 @@ export default function ExamStartPage({
     }
   }
 
-  if (isLoading) {
+  if (isLoading || (isStudent && isCheckingAccess)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 size={32} className="animate-spin text-slate-400" />
       </div>
     );
   }
+
+  // Student not enrolled — redirect is in flight, show nothing
+  if (isStudent && !isEnrolled) return null;
 
   if (!exam) {
     return (
@@ -117,20 +143,35 @@ export default function ExamStartPage({
           <div className="mt-5 flex items-start gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
             <AlertCircle size={15} className="text-amber-400 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-amber-300 leading-relaxed">
-              Do not switch tabs or copy/paste during the exam. Each violation is
-              recorded. Three violations will result in automatic submission.
+              Do not switch tabs, switch windows, or copy/paste during the exam.
+              Each violation is recorded. Three violations will result in automatic submission.
             </p>
           </div>
 
           {/* Start button */}
-          <button
-            onClick={handleStart}
-            disabled={isPending}
-            className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
-          >
-            {isPending && <Loader2 size={16} className="animate-spin" />}
-            {hasResumable ? "Resume Exam" : "Start Exam"}
-          </button>
+          {alreadySubmitted ? (
+            <div className="mt-6 flex flex-col gap-3">
+              <div className="w-full flex items-center justify-center gap-2 bg-slate-800 text-slate-500 font-semibold py-3 rounded-xl cursor-not-allowed select-none">
+                Already submitted
+              </div>
+              <Link
+                href="/dashboard/exams"
+                className="w-full flex items-center justify-center gap-2 bg-slate-700/60 hover:bg-slate-700 text-slate-300 font-semibold py-3 rounded-xl transition-colors text-sm"
+              >
+                <Home size={14} />
+                Back to Dashboard
+              </Link>
+            </div>
+          ) : (
+            <button
+              onClick={handleStart}
+              disabled={isPending || isCheckingSubmission}
+              className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              {(isPending || isCheckingSubmission) && <Loader2 size={16} className="animate-spin" />}
+              {hasResumable ? "Resume Exam" : "Start Exam"}
+            </button>
+          )}
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">

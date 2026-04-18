@@ -12,7 +12,7 @@ import {
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormField } from "@/components/auth/FormField";
-import { useExams, useCreateExam, useUpdateExam, useDeleteExam } from "@/hooks/services/exams";
+import { useExams, useAvailableExams, useCreateExam, useUpdateExam, useDeleteExam } from "@/hooks/services/exams";
 import { useCourses } from "@/hooks/services/courses";
 import { examSchema, updateExamSchema, LANGUAGES } from "@/validations/exam";
 import { useCurrentUser } from "@/hooks/common/useCurrentUser";
@@ -35,8 +35,13 @@ export default function ExamsPage() {
   const [editTarget, setEditTarget] = useState<Exam | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Exam | null>(null);
 
-  const { data, isLoading } = useExams();
-  const exams: Exam[] = data?.data?.data ?? [];
+  const { data: allExamsData, isLoading: allLoading } = useExams();
+  const { data: availableData, isLoading: availableLoading } = useAvailableExams(isStudent);
+
+  const isLoading = isStudent ? availableLoading : allLoading;
+  const exams: Exam[] = isStudent
+    ? (availableData?.data?.data ?? [])
+    : (allExamsData?.data?.data ?? []);
 
   return (
     <div>

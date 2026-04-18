@@ -1,5 +1,4 @@
 "use client";
-// src/hooks/services/exams/useExams.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
@@ -7,7 +6,14 @@ import { examsService } from "@/services/client/exams";
 import { examSchema, updateExamSchema } from "@/validations/exam";
 import { questionSchema } from "@/validations/question";
 import { testCaseSchema } from "@/validations/testCase";
-import type { ApiResponse, PaginatedResponse, Exam, Question, TestCase, Submission } from "@/interfaces";
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  Exam,
+  Question,
+  TestCase,
+  Submission,
+} from "@/interfaces";
 
 export const EXAMS_KEY = ["exams"] as const;
 export const examKey = (id: string) => ["exams", id] as const;
@@ -19,6 +25,14 @@ export function useExams(courseId?: string) {
   return useQuery<PaginatedResponse<Exam>>({
     queryKey: courseId ? [...EXAMS_KEY, { courseId }] : EXAMS_KEY,
     queryFn: () => examsService.list(courseId),
+  });
+}
+
+export function useAvailableExams(enabled = true) {
+  return useQuery<ApiResponse<Exam[]>>({
+    queryKey: ["exams", "available"],
+    queryFn: () => examsService.getAvailable(),
+    enabled,
   });
 }
 
@@ -49,7 +63,7 @@ export function useCreateExam(onSuccess?: () => void) {
       toast.success("Exam created");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to create exam"),
+    onError: () => {},
   });
 }
 
@@ -64,7 +78,21 @@ export function useUpdateExam(id: string, onSuccess?: () => void) {
       toast.success("Exam updated");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to update exam"),
+    onError: () => {},
+  });
+}
+
+export function useUpdateExamStatus(id: string, onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse<Exam>, Error, string>({
+    mutationFn: (status) => examsService.updateStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: examKey(id) });
+      qc.invalidateQueries({ queryKey: EXAMS_KEY });
+      toast.success("Exam status updated");
+      onSuccess?.();
+    },
+    onError: () => {},
   });
 }
 
@@ -77,7 +105,7 @@ export function useDeleteExam(onSuccess?: () => void) {
       toast.success("Exam deleted");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to delete exam"),
+    onError: () => {},
   });
 }
 
@@ -85,27 +113,39 @@ export function useDeleteExam(onSuccess?: () => void) {
 
 export function useAddQuestion(examId: string, onSuccess?: () => void) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<Question>, Error, InferType<typeof questionSchema>>({
+  return useMutation<
+    ApiResponse<Question>,
+    Error,
+    InferType<typeof questionSchema>
+  >({
     mutationFn: (data) => examsService.addQuestion(examId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: examKey(examId) });
       toast.success("Question added");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to add question"),
+    onError: () => {},
   });
 }
 
-export function useUpdateQuestion(examId: string, questionId: string, onSuccess?: () => void) {
+export function useUpdateQuestion(
+  examId: string,
+  questionId: string,
+  onSuccess?: () => void,
+) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<Question>, Error, Partial<InferType<typeof questionSchema>>>({
+  return useMutation<
+    ApiResponse<Question>,
+    Error,
+    Partial<InferType<typeof questionSchema>>
+  >({
     mutationFn: (data) => examsService.updateQuestion(questionId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: examKey(examId) });
       toast.success("Question updated");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to update question"),
+    onError: () => {},
   });
 }
 
@@ -118,35 +158,53 @@ export function useDeleteQuestion(examId: string, onSuccess?: () => void) {
       toast.success("Question deleted");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to delete question"),
+    onError: () => {},
   });
 }
 
 // ── Test case mutations ───────────────────────────────────────────────────────
 
-export function useAddTestCase(examId: string, questionId: string, onSuccess?: () => void) {
+export function useAddTestCase(
+  examId: string,
+  questionId: string,
+  onSuccess?: () => void,
+) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<TestCase>, Error, InferType<typeof testCaseSchema>>({
+  return useMutation<
+    ApiResponse<TestCase[]>,
+    Error,
+    InferType<typeof testCaseSchema>[]
+  >({
     mutationFn: (data) => examsService.addTestCase(questionId, data),
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: examKey(examId) });
-      toast.success("Test case added");
+      toast.success(
+        `${vars.length} test case${vars.length !== 1 ? "s" : ""} added`,
+      );
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to add test case"),
+    onError: () => {},
   });
 }
 
-export function useUpdateTestCase(examId: string, testCaseId: string, onSuccess?: () => void) {
+export function useUpdateTestCase(
+  examId: string,
+  testCaseId: string,
+  onSuccess?: () => void,
+) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<TestCase>, Error, Partial<InferType<typeof testCaseSchema>>>({
+  return useMutation<
+    ApiResponse<TestCase>,
+    Error,
+    Partial<InferType<typeof testCaseSchema>>
+  >({
     mutationFn: (data) => examsService.updateTestCase(testCaseId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: examKey(examId) });
       toast.success("Test case updated");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to update test case"),
+    onError: () => {},
   });
 }
 
@@ -159,6 +217,6 @@ export function useDeleteTestCase(examId: string, onSuccess?: () => void) {
       toast.success("Test case deleted");
       onSuccess?.();
     },
-    onError: (e) => toast.error(e.message || "Failed to delete test case"),
+    onError: () => {},
   });
 }

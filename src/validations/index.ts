@@ -5,3 +5,4 @@ export * from "./exam";
 export * from "./question";
 export * from "./testCase";
 export * from "./user";
+export * from "./tenant";

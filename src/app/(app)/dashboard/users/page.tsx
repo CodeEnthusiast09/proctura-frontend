@@ -21,15 +21,17 @@ import { FormField } from "@/components/auth/FormField";
 import {
   useUsers,
   useInviteLecturer,
+  useInviteStudent,
   useImportStudents,
   useToggleUserActive,
   useDeleteUser,
 } from "@/hooks/services/users";
-import { inviteLecturerSchema } from "@/validations/user";
+import { inviteLecturerSchema, inviteStudentSchema } from "@/validations/user";
 import type { User } from "@/interfaces";
 
 type Tab = "lecturer" | "student";
-type InviteFormData = InferType<typeof inviteLecturerSchema>;
+type InviteLecturerFormData = InferType<typeof inviteLecturerSchema>;
+type InviteStudentFormData = InferType<typeof inviteStudentSchema>;
 
 const ROLE_LABEL: Record<string, string> = {
   lecturer: "Lecturer",
@@ -40,6 +42,7 @@ const ROLE_LABEL: Record<string, string> = {
 export default function UsersPage() {
   const [tab, setTab] = useState<Tab>("lecturer");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteStudentOpen, setInviteStudentOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,7 +71,7 @@ export default function UsersPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* CSV import — only visible on students tab */}
+          {/* Students tab actions */}
           {tab === "student" && (
             <>
               <input
@@ -83,12 +86,15 @@ export default function UsersPage() {
                 disabled={isImporting}
                 className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-navy-dark dark:text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:border-navy/30 dark:hover:border-slate-500 disabled:opacity-60 transition-colors"
               >
-                {isImporting ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <Upload size={15} />
-                )}
+                {isImporting ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                 Import CSV
+              </button>
+              <button
+                onClick={() => setInviteStudentOpen(true)}
+                className="flex items-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
+              >
+                <UserPlus size={15} />
+                Invite Student
               </button>
             </>
           )}
@@ -165,6 +171,7 @@ export default function UsersPage() {
 
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
       <InviteLecturerModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <InviteStudentModal open={inviteStudentOpen} onClose={() => setInviteStudentOpen(false)} />
       <DeleteUserDialog user={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </div>
   );
@@ -275,7 +282,7 @@ function InviteLecturerModal({ open, onClose }: { open: boolean; onClose: () => 
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<InviteFormData>({ resolver: yupResolver(inviteLecturerSchema) });
+  } = useForm<InviteLecturerFormData>({ resolver: yupResolver(inviteLecturerSchema) });
 
   const { mutate, isPending } = useInviteLecturer(() => {
     reset();
@@ -311,6 +318,76 @@ function InviteLecturerModal({ open, onClose }: { open: boolean; onClose: () => 
           The lecturer will receive an email with a link to set up their password.
         </p>
 
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-navy dark:bg-blue-600 text-white rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 disabled:opacity-60 transition-colors"
+          >
+            {isPending && <Loader2 size={14} className="animate-spin" />}
+            Send Invitation
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ── Invite Student Modal ──────────────────────────────────────────────────────
+
+function InviteStudentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<InviteStudentFormData>({ resolver: yupResolver(inviteStudentSchema) });
+
+  const { mutate, isPending } = useInviteStudent(() => {
+    reset();
+    onClose();
+  });
+
+  return (
+    <Modal open={open} onClose={onClose} title="Invite Student" size="md">
+      <form onSubmit={handleSubmit((d) => mutate(d))} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            label="First name"
+            placeholder="Chidi"
+            error={errors.firstName?.message}
+            {...register("firstName")}
+          />
+          <FormField
+            label="Last name"
+            placeholder="Okeke"
+            error={errors.lastName?.message}
+            {...register("lastName")}
+          />
+        </div>
+        <FormField
+          label="Email address"
+          type="email"
+          placeholder="chidi@ui.edu.ng"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <FormField
+          label="Matric number"
+          placeholder="CSC/2021/001"
+          error={errors.matricNumber?.message}
+          {...register("matricNumber")}
+        />
+        <p className="text-xs text-slate dark:text-slate-400">
+          The student will receive an email with a link to set up their password.
+        </p>
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"

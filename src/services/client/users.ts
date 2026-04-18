@@ -1,7 +1,7 @@
 // src/services/client/users.ts
 import { api } from "@/lib/axios";
 import type { InferType } from "yup";
-import type { inviteLecturerSchema } from "@/validations/user";
+import type { inviteLecturerSchema, inviteStudentSchema } from "@/validations/user";
 
 export const usersService = {
   list: (role?: string, page = 1, limit = 50) =>
@@ -9,6 +9,9 @@ export const usersService = {
 
   inviteLecturer: (payload: InferType<typeof inviteLecturerSchema>) =>
     api.post("/users/invite-lecturer", payload),
+
+  inviteStudent: (payload: InferType<typeof inviteStudentSchema>) =>
+    api.post("/users/invite-student", payload),
 
   importStudents: (file: File) => {
     const form = new FormData();

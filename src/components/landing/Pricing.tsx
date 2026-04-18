@@ -5,7 +5,8 @@ const PLANS = [
   {
     name: "Institution",
     price: "Custom",
-    description: "For a single university or department ready to go fully digital.",
+    description:
+      "For a single university or department ready to go fully digital.",
     cta: "Contact Us",
     ctaHref: "#contact",
     featured: false,
@@ -23,7 +24,8 @@ const PLANS = [
   {
     name: "Enterprise",
     price: "Custom",
-    description: "For university consortiums, state systems, or large deployments.",
+    description:
+      "For university consortiums, state systems, or large deployments.",
     cta: "Let's Talk",
     ctaHref: "#contact",
     featured: true,
@@ -53,8 +55,8 @@ export function Pricing() {
             Priced for Nigerian universities.
           </h2>
           <p className="text-slate dark:text-slate-400 text-lg">
-            No per-student subscriptions. Flat institution pricing so your school knows
-            exactly what it&apos;s paying.
+            No per-student subscriptions. Flat institution pricing so your
+            school knows exactly what it&apos;s paying.
           </p>
         </div>
 
@@ -80,22 +82,30 @@ export function Pricing() {
               <div className="mb-6">
                 <h3
                   className={`font-plus text-xl font-bold mb-1 ${
-                    plan.featured ? "text-white" : "text-navy-dark dark:text-white"
+                    plan.featured
+                      ? "text-white"
+                      : "text-navy-dark dark:text-white"
                   }`}
                 >
                   {plan.name}
                 </h3>
                 <p
                   className={`text-sm mb-4 ${
-                    plan.featured ? "text-white/60" : "text-slate dark:text-slate-400"
+                    plan.featured
+                      ? "text-white/60"
+                      : "text-slate dark:text-slate-400"
                   }`}
                 >
                   {plan.description}
                 </p>
-                <div className={`text-3xl font-plus font-bold ${plan.featured ? "text-white" : "text-navy-dark dark:text-white"}`}>
+                <div
+                  className={`text-3xl font-plus font-bold ${plan.featured ? "text-white" : "text-navy-dark dark:text-white"}`}
+                >
                   {plan.price}
                 </div>
-                <p className={`text-xs mt-1 ${plan.featured ? "text-white/50" : "text-slate dark:text-slate-500"}`}>
+                <p
+                  className={`text-xs mt-1 ${plan.featured ? "text-white/50" : "text-slate dark:text-slate-500"}`}
+                >
                   Pricing based on school size and requirements
                 </p>
               </div>
@@ -109,7 +119,13 @@ export function Pricing() {
                         plan.featured ? "text-green-light" : "text-green"
                       }`}
                     />
-                    <span className={plan.featured ? "text-white/80" : "text-slate-600 dark:text-slate-300"}>
+                    <span
+                      className={
+                        plan.featured
+                          ? "text-white/80"
+                          : "text-slate-600 dark:text-slate-300"
+                      }
+                    >
                       {feature}
                     </span>
                   </li>
@@ -132,7 +148,14 @@ export function Pricing() {
         </div>
 
         <p className="text-center text-sm text-slate dark:text-slate-400 mt-8">
-          Not sure which plan fits? <a href="#contact" className="text-navy dark:text-blue-400 font-semibold hover:underline">Talk to us</a> and we&apos;ll figure it out together.
+          Not sure which plan fits?{" "}
+          <a
+            href="#contact"
+            className="text-navy dark:text-blue-400 font-semibold hover:underline"
+          >
+            Talk to us
+          </a>{" "}
+          &nbsp;and we&apos;ll figure it out together.
         </p>
       </div>
     </section>

@@ -10,6 +10,7 @@ import {
   GraduationCap,
   LogOut,
   X,
+  BarChart2,
 } from "lucide-react";
 import { ProcuturaLogo } from "@/components/landing/Logo";
 import { useCurrentUser } from "@/hooks/common/useCurrentUser";
@@ -53,6 +54,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/results",
     icon: LayoutDashboard,
     roles: ["lecturer", "school_admin"],
+  },
+  {
+    label: "My Results",
+    href: "/dashboard/my-results",
+    icon: BarChart2,
+    roles: ["student"],
   },
 ];
 

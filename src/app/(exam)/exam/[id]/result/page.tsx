@@ -1,30 +1,24 @@
 "use client";
 // src/app/(exam)/exam/[id]/result/page.tsx
 import { use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, XCircle, Loader2, Home } from "lucide-react";
 import { useSubmissionResult } from "@/hooks/services/submissions";
-import { retrieveFromLocalStorage } from "@/lib/localStorage";
-import type { Submission } from "@/interfaces";
-
-function submissionKey(examId: string) {
-  return `exam_submission_${examId}`;
-}
 
 export default function ExamResultPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id: _id } = use(params);
+  const searchParams = useSearchParams();
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
-    // At this point localStorage still has the submission (cleared by take page on success
-    // or might still be here if we navigated here manually)
-    const stored = retrieveFromLocalStorage<Submission>(submissionKey(id));
-    if (stored) setSubmissionId(stored.id);
-  }, [id]);
+    const sid = searchParams.get("sid");
+    if (sid) setSubmissionId(sid);
+  }, [searchParams]);
 
   const { data, isLoading } = useSubmissionResult(submissionId);
   const result = data?.data?.data;
@@ -47,6 +41,12 @@ export default function ExamResultPage({
           <div className="bg-[#161b22] border border-slate-700/60 rounded-2xl p-12">
             <Loader2 size={32} className="animate-spin text-slate-500 mx-auto mb-4" />
             <p className="text-slate-400 text-sm">Loading your results…</p>
+          </div>
+        ) : result.status === "submitted" ? (
+          <div className="bg-[#161b22] border border-slate-700/60 rounded-2xl p-12">
+            <Loader2 size={32} className="animate-spin text-blue-400 mx-auto mb-4" />
+            <p className="text-white font-semibold mb-1">Grading in progress…</p>
+            <p className="text-slate-400 text-sm">Your code is being evaluated. This usually takes a few seconds.</p>
           </div>
         ) : (
           <div className="bg-[#161b22] border border-slate-700/60 rounded-2xl p-8">

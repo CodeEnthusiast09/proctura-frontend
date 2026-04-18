@@ -10,6 +10,8 @@ export const examsService = {
   list: (courseId?: string) =>
     api.get("/exams", { params: courseId ? { course_id: courseId } : {} }),
 
+  getAvailable: () => api.get("/exams/available"),
+
   get: (id: string) => api.get(`/exams/${id}`),
 
   create: (payload: InferType<typeof examSchema>) =>
@@ -17,6 +19,9 @@ export const examsService = {
 
   update: (id: string, payload: InferType<typeof updateExamSchema> & { status?: string }) =>
     api.put(`/exams/${id}`, payload),
+
+  updateStatus: (id: string, status: string) =>
+    api.patch(`/exams/${id}/status`, { status }),
 
   delete: (id: string) => api.delete(`/exams/${id}`),
 
@@ -33,7 +38,7 @@ export const examsService = {
     api.delete(`/questions/${questionId}`),
 
   // Test cases
-  addTestCase: (questionId: string, payload: InferType<typeof testCaseSchema>) =>
+  addTestCase: (questionId: string, payload: InferType<typeof testCaseSchema>[]) =>
     api.post(`/questions/${questionId}/test-cases`, payload),
 
   updateTestCase: (testCaseId: string, payload: Partial<InferType<typeof testCaseSchema>>) =>

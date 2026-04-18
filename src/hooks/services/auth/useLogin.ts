@@ -23,6 +23,9 @@ export function useLogin() {
         const { accessToken: token, user } = res.data.data;
         storeInLocalStorage("token", token);
         storeInLocalStorage("user", user);
+        if (user.subdomain) {
+          storeInLocalStorage("subdomain", user.subdomain);
+        }
         toast.success(`Welcome back, ${user.firstName}`);
 
         // Role-based redirect

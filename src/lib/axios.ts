@@ -56,21 +56,24 @@ function createAxiosInstance(baseURL: string) {
     },
     (error: AxiosError<{ message?: string; success?: boolean }>) => {
       const status = error.response?.status;
-      const message = error.response?.data?.message ?? "Something went wrong.";
+      const message =
+        typeof error.response?.data?.message === "string"
+          ? error.response.data.message
+          : "Something went wrong.";
 
       if (status === 401) {
         removeFromLocalStorage("token");
         removeFromLocalStorage("user");
-        // Redirect to login if in app context
         if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";
         }
-      } else if (status !== 422) {
-        // 422 (validation) is handled at the form level
-        toast.error(typeof message === "string" ? message : "An error occurred.");
+      } else if (status !== 404 && status !== 422) {
+        // 404 = not found, handled at component level; 422 = validation, handled at form level
+        toast.error(message);
       }
 
-      return Promise.reject(error);
+      // Rethrow with the extracted message so hook onError handlers get a clean Error
+      return Promise.reject(new Error(message));
     }
   );
 

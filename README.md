@@ -41,7 +41,7 @@ Web client for Proctura — a multitenancy online coding exam platform for unive
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (detected from `pnpm-lock.yaml`)
+- npm
 - Proctura backend running at the configured API URL
 
 ### Setup
@@ -55,10 +55,10 @@ cd proctura-frontend
 cp .env.example .env.local
 
 # 3. Install dependencies
-pnpm install
+npm install
 
 # 4. Start the dev server
-pnpm dev
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -104,8 +104,8 @@ In local dev, set the `X-Tenant-Subdomain` header — the axios instance handles
 ## Commands
 
 ```bash
-pnpm dev        # start development server
-pnpm build      # production build
-pnpm start      # start production server
-pnpm lint       # run ESLint
+npm run dev     # start development server
+npm run build   # production build
+npm start       # start production server
+npm run lint    # run ESLint
 ```

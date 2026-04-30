@@ -1,5 +1,3 @@
-// src/lib/localStorage.ts
-
 export const storeInLocalStorage = (key: string, value: unknown): void => {
   if (typeof window === "undefined") return;
   try {
@@ -9,7 +7,9 @@ export const storeInLocalStorage = (key: string, value: unknown): void => {
   }
 };
 
-export const retrieveFromLocalStorage = <T = unknown>(key: string): T | null => {
+export const retrieveFromLocalStorage = <T = unknown>(
+  key: string,
+): T | null => {
   if (typeof window === "undefined") return null;
   try {
     const item = localStorage.getItem(key);

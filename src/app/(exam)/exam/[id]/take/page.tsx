@@ -1,5 +1,5 @@
 "use client";
-// src/app/(exam)/exam/[id]/take/page.tsx
+
 import { use, useEffect, useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -23,6 +23,7 @@ import {
   useLogViolation,
   useRunCode,
 } from "@/hooks/services/submissions";
+import { submissionsService } from "@/services/client/submissions";
 import { retrieveFromLocalStorage } from "@/lib/localStorage";
 import type { Submission, Question, RunCodeResult } from "@/interfaces";
 import toast from "react-hot-toast";
@@ -111,14 +112,20 @@ export default function ExamTakePage({
   const [runResults, setRunResults] = useState<RunCodeResult[] | null>(null);
   const [showRunPanel, setShowRunPanel] = useState(false);
 
+  // ── Recording ───────────────────────────────────────────────────────────────
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const requestingCameraRef = useRef(false);
+  const [isRecording, setIsRecording] = useState(false);
+
   // ── Mutations ───────────────────────────────────────────────────────────────
   const { mutate: saveAnswer } = useSaveAnswer();
-  const { mutate: submitExam, isPending: isSubmitting } = useSubmitExam((submittedId) => {
-    localStorage.removeItem(submissionKey(id));
-    router.replace(`/exam/${id}/result?sid=${submittedId}`);
-  });
+  const { mutate: submitExam, isPending: isSubmitting } = useSubmitExam();
   const { mutate: logViolation } = useLogViolation();
   const { mutate: runCode, isPending: isRunning } = useRunCode();
+  const [isHandlingSubmit, setIsHandlingSubmit] = useState(false);
 
   // ── Init timer from server startedAt ───────────────────────────────────────
   useEffect(() => {
@@ -165,6 +172,122 @@ export default function ExamTakePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId, exam]);
 
+  // ── Webcam recording ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!submissionId) return;
+    requestingCameraRef.current = true;
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        streamRef.current = stream;
+        const mimeType = MediaRecorder.isTypeSupported(
+          "video/webm;codecs=vp8,opus",
+        )
+          ? "video/webm;codecs=vp8,opus"
+          : "video/webm";
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: 400_000,
+        });
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+        };
+        recorder.start(1000);
+        mediaRecorderRef.current = recorder;
+        setIsRecording(true);
+      })
+      .catch(() => {
+        // Camera access denied — exam continues unrecorded
+      })
+      .finally(() => {
+        requestingCameraRef.current = false;
+      });
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, [submissionId]);
+
+  // Stops the recorder and returns the collected blob (best-effort, never throws).
+  function stopRecorder(): Promise<Blob | null> {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive")
+      return Promise.resolve(null);
+    return new Promise((resolve) => {
+      recorder.onstop = () => {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
+        const blob = new Blob(recordingChunksRef.current, {
+          type: "video/webm",
+        });
+        resolve(blob.size > 0 ? blob : null);
+      };
+      recorder.stop();
+    });
+  }
+
+  // Uploads a blob using an already-fetched upload token. Returns the public URL.
+  async function uploadBlob(
+    blob: Blob,
+    token: import("@/interfaces").UploadToken,
+    subId: string,
+  ): Promise<string | undefined> {
+    try {
+      if (token.provider === "cloudinary" && token.cloudinary) {
+        const sig = token.cloudinary;
+        const form = new FormData();
+        form.append("file", blob, `recording-${subId}.webm`);
+        form.append("api_key", sig.apiKey);
+        form.append("timestamp", String(sig.timestamp));
+        form.append("signature", sig.signature);
+        form.append("folder", sig.folder);
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`,
+          { method: "POST", body: form },
+        );
+        const data = (await res.json()) as { secure_url?: string };
+        return data.secure_url ?? undefined;
+      }
+      if (token.provider === "minio" && token.minio) {
+        await fetch(token.minio.uploadUrl, {
+          method: "PUT",
+          body: blob,
+          headers: { "Content-Type": "video/webm" },
+        });
+        return token.minio.publicUrl;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+
+  // Fetches an upload token, uploads a pre-collected blob, then PATCHes the
+  // submission. Call this AFTER stopRecorder() returns the blob — never inline
+  // stopRecorder here, because by the time this runs the component may have
+  // unmounted and the MediaRecorder already been torn down by cleanup.
+  async function uploadAndAttach(subId: string, blob: Blob): Promise<void> {
+    try {
+      const tokenRes = await submissionsService.getUploadToken(
+        subId,
+        blob.size,
+      );
+      const token = tokenRes.data?.data;
+      if (!token) return;
+      const url = await uploadBlob(blob, token, subId);
+      if (url) {
+        await submissionsService.updateRecordingUrl(subId, url);
+      }
+    } catch {
+      // best-effort — recording attachment is non-critical
+    }
+  }
+
+  // Wire the live stream to the preview element once it mounts (isRecording true = element in DOM)
+  useEffect(() => {
+    if (isRecording && streamRef.current && previewVideoRef.current) {
+      previewVideoRef.current.srcObject = streamRef.current;
+    }
+  }, [isRecording]);
+
   // ── Anti-cheat: tab switch + window switch ─────────────────────────────────
   const antiCheatEnabled = process.env.NEXT_PUBLIC_ANTI_CHEAT !== "false";
 
@@ -174,7 +297,8 @@ export default function ExamTakePage({
       if (document.hidden) recordViolation("tab_switch");
     }
     function handleWindowBlur() {
-      if (!document.hidden) recordViolation("window_switch");
+      if (!document.hidden && !requestingCameraRef.current)
+        recordViolation("window_switch");
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleWindowBlur);
@@ -190,8 +314,7 @@ export default function ExamTakePage({
     if (!antiCheatEnabled) return;
     function handleFullscreenChange() {
       if (!document.fullscreenElement) {
-        recordViolation("fullscreen_exit");
-        // Re-request fullscreen
+        if (!requestingCameraRef.current) recordViolation("fullscreen_exit");
         document.documentElement.requestFullscreen?.().catch(() => {});
       }
     }
@@ -235,11 +358,13 @@ export default function ExamTakePage({
         {
           onSuccess: () => handleAutoSubmit("3 violations"),
           onError: () => handleAutoSubmit("3 violations"),
-        }
+        },
       );
     } else {
       logViolation({ submissionId, reason });
-      toast.error(`Violation recorded: ${reason.replace("_", " ")} (${violationRef.current}/3)`);
+      toast.error(
+        `Violation recorded: ${reason.replace("_", " ")} (${violationRef.current}/3)`,
+      );
     }
   }
 
@@ -263,21 +388,25 @@ export default function ExamTakePage({
           onError: () => {
             if (!silent) setIsSaving(false);
           },
-        }
+        },
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [submissionId, exam, currentIndex]
+    [submissionId, exam, currentIndex],
   );
 
-  function handleAutoSubmit(reason?: string) {
+  async function handleAutoSubmit(reason?: string) {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!submissionId) return;
 
+    // Collect the blob now — before router.replace() unmounts the component and
+    // the cleanup stops the stream tracks, making the MediaRecorder inactive.
+    const blob = await stopRecorder();
+
     if (reason === "3 violations") {
-      // Backend already submitted via logViolation — just navigate
       localStorage.removeItem(submissionKey(id));
       router.replace(`/exam/${id}/result?sid=${submissionId}`);
+      if (blob) void uploadAndAttach(submissionId, blob);
       return;
     }
 
@@ -290,13 +419,42 @@ export default function ExamTakePage({
         }
       });
     }
-    submitExam(submissionId);
+
+    const subId = submissionId;
+    submitExam(
+      { submissionId: subId },
+      {
+        onSuccess: (res) => {
+          const sid = res.data?.data?.id ?? subId;
+          localStorage.removeItem(submissionKey(id));
+          router.replace(`/exam/${id}/result?sid=${sid}`);
+          if (blob) void uploadAndAttach(subId, blob);
+        },
+      },
+    );
   }
 
-  function handleManualSubmit() {
-    if (!submissionId) return;
+  async function handleManualSubmit() {
+    if (!submissionId || isHandlingSubmit) return;
+    setIsHandlingSubmit(true);
     saveCurrentAnswer(true);
-    submitExam(submissionId);
+
+    // Collect the blob before navigation so the stream is still active.
+    const blob = await stopRecorder();
+
+    const subId = submissionId;
+    submitExam(
+      { submissionId: subId },
+      {
+        onSuccess: (res) => {
+          const sid = res.data?.data?.id ?? subId;
+          localStorage.removeItem(submissionKey(id));
+          router.replace(`/exam/${id}/result?sid=${sid}`);
+          if (blob) void uploadAndAttach(subId, blob);
+        },
+        onSettled: () => setIsHandlingSubmit(false),
+      },
+    );
   }
 
   function handleRunCode() {
@@ -313,7 +471,7 @@ export default function ExamTakePage({
       {
         onSuccess: (res) => setRunResults(res.data?.data ?? []),
         onError: () => toast.error("Failed to run code. Try again."),
-      }
+      },
     );
   }
 
@@ -355,6 +513,14 @@ export default function ExamTakePage({
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Recording indicator */}
+          {isRecording && (
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              REC
+            </div>
+          )}
+
           {/* Violations */}
           {violationCount > 0 && (
             <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
@@ -378,7 +544,7 @@ export default function ExamTakePage({
           {/* Submit */}
           <button
             onClick={handleManualSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isHandlingSubmit}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
           >
             {isSubmitting ? (
@@ -407,8 +573,8 @@ export default function ExamTakePage({
                   isActive
                     ? "bg-blue-600 text-white"
                     : hasAnswer
-                    ? "bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25"
-                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                      ? "bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25"
+                      : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                 }`}
               >
                 {i + 1}
@@ -436,30 +602,47 @@ export default function ExamTakePage({
                 </p>
 
                 {/* Public test cases as examples */}
-                {currentQuestion.testCases && currentQuestion.testCases.filter((tc) => !tc.isHidden).length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Examples
-                    </p>
-                    {currentQuestion.testCases.filter((tc) => !tc.isHidden).map((tc, i) => (
-                      <div key={tc.id} className="flex gap-2 text-xs font-mono">
-                        {tc.input != null && (
-                          <div className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-lg p-2.5">
-                            <p className="text-slate-500 mb-1">Input {i + 1}</p>
-                            <pre className="text-slate-300 whitespace-pre-wrap">{tc.input}</pre>
+                {currentQuestion.testCases &&
+                  currentQuestion.testCases.filter((tc) => !tc.isHidden)
+                    .length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                        Examples
+                      </p>
+                      {currentQuestion.testCases
+                        .filter((tc) => !tc.isHidden)
+                        .map((tc, i) => (
+                          <div
+                            key={tc.id}
+                            className="flex gap-2 text-xs font-mono"
+                          >
+                            {tc.input != null && (
+                              <div className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-lg p-2.5">
+                                <p className="text-slate-500 mb-1">
+                                  Input {i + 1}
+                                </p>
+                                <pre className="text-slate-300 whitespace-pre-wrap">
+                                  {tc.input}
+                                </pre>
+                              </div>
+                            )}
+                            <div className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-lg p-2.5">
+                              <p className="text-slate-500 mb-1">
+                                Expected Output
+                              </p>
+                              <pre className="text-slate-300 whitespace-pre-wrap">
+                                {tc.expectedOutput}
+                              </pre>
+                            </div>
                           </div>
-                        )}
-                        <div className="flex-1 bg-slate-800/80 border border-slate-700/50 rounded-lg p-2.5">
-                          <p className="text-slate-500 mb-1">Expected Output</p>
-                          <pre className="text-slate-300 whitespace-pre-wrap">{tc.expectedOutput}</pre>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        ))}
+                    </div>
+                  )}
               </div>
             ) : (
-              <p className="text-slate-500 text-sm">No questions in this exam.</p>
+              <p className="text-slate-500 text-sm">
+                No questions in this exam.
+              </p>
             )}
           </div>
 
@@ -532,7 +715,11 @@ export default function ExamTakePage({
                           ) : (
                             <CircleX size={13} className="text-red-400" />
                           )}
-                          <span className={r.passed ? "text-green-400" : "text-red-400"}>
+                          <span
+                            className={
+                              r.passed ? "text-green-400" : "text-red-400"
+                            }
+                          >
                             Test {i + 1}
                           </span>
                         </div>
@@ -540,11 +727,15 @@ export default function ExamTakePage({
                           <div className="flex gap-3 flex-1 min-w-0">
                             <div className="min-w-0">
                               <p className="text-slate-500 mb-0.5">Expected</p>
-                              <pre className="text-slate-300 whitespace-pre-wrap break-all">{r.expectedOutput}</pre>
+                              <pre className="text-slate-300 whitespace-pre-wrap break-all">
+                                {r.expectedOutput}
+                              </pre>
                             </div>
                             <div className="min-w-0">
                               <p className="text-slate-500 mb-0.5">Got</p>
-                              <pre className="text-red-300 whitespace-pre-wrap break-all">{r.actualOutput || r.statusDesc}</pre>
+                              <pre className="text-red-300 whitespace-pre-wrap break-all">
+                                {r.actualOutput || r.statusDesc}
+                              </pre>
                             </div>
                           </div>
                         )}
@@ -619,6 +810,23 @@ export default function ExamTakePage({
           </button>
         </div>
       </footer>
+
+      {/* ── Webcam preview ────────────────────────────────────────────────── */}
+      {isRecording && (
+        <div className="fixed bottom-14 left-4 z-50">
+          <video
+            ref={previewVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-72 h-48 rounded-xl object-cover border-2 border-red-500/60 bg-black shadow-lg"
+          />
+          <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/60 rounded px-1.5 py-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-red-400 tracking-wide">REC</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

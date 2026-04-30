@@ -18,8 +18,9 @@ Web client for Proctura — a multitenancy online coding exam platform for unive
 - Browse and take exams they are enrolled in
 - Write code in a full Monaco editor with language support
 - Run code against visible test cases before submitting
-- Auto-save answers as they type
-- Anti-cheat detection (tab switch, clipboard) — auto-submits after 3 violations
+- Auto-save answers every 30 seconds
+- Webcam recording during the exam — uploaded in the background after submission (student is not blocked)
+- Anti-cheat detection (tab switch, window blur, fullscreen exit, clipboard) — auto-submits after 3 violations
 - View graded results with per-question breakdown
 
 ### Lecturers
@@ -29,7 +30,7 @@ Web client for Proctura — a multitenancy online coding exam platform for unive
 - Set exam language, duration, and availability window
 - View all student submissions with scores and violation counts
 - Review submitted code per student in a read-only editor
-- Override scores per question manually
+- Override scores per question manually with a single batch save
 
 ### All Roles
 - Login notification email on every sign-in (time, IP, location)

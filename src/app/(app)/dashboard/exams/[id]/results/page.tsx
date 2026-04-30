@@ -5,11 +5,13 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft, Loader2, Users, Search, Code2,
-  CircleCheck, CircleX, X, ChevronDown, ChevronUp,
+  CircleCheck, CircleX, X, ChevronDown, ChevronUp, Video,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useExam, useExamResults } from "@/hooks/services/exams";
-import { useSubmissionDetail, useOverrideScore } from "@/hooks/services/submissions";
+import { useSubmissionDetail } from "@/hooks/services/submissions";
+import { useQueryClient } from "@tanstack/react-query";
+import { submissionsService } from "@/services/client/submissions";
 import type { Submission, SubmissionAnswer } from "@/interfaces";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -203,11 +205,49 @@ function ReviewDrawer({
   examLanguage: string;
   onClose: () => void;
 }) {
+  const qc = useQueryClient();
   const { data, isLoading } = useSubmissionDetail(submissionId);
-  const { mutate: override, isPending: isSaving } = useOverrideScore(submissionId, examId);
+  const [localScores, setLocalScores] = useState<Record<string, number>>({});
+  const [isSavingAll, setIsSavingAll] = useState(false);
 
   const sub = data?.data?.data;
   const monacoLang = LANGUAGE_MAP[examLanguage.toLowerCase()] ?? "plaintext";
+
+  useEffect(() => {
+    if (!sub?.answers) return;
+    setLocalScores((prev) => {
+      const next = { ...prev };
+      for (const a of sub.answers!) {
+        if (!(a.id in next)) next[a.id] = a.score;
+      }
+      return next;
+    });
+  }, [sub?.answers]);
+
+  const dirtyAnswers =
+    sub?.answers?.filter(
+      (a) => localScores[a.id] !== undefined && localScores[a.id] !== a.score,
+    ) ?? [];
+
+  async function handleSaveAll() {
+    if (!dirtyAnswers.length) return;
+    setIsSavingAll(true);
+    try {
+      await Promise.all(
+        dirtyAnswers.map((a) =>
+          submissionsService.overrideScore(submissionId, a.id, localScores[a.id]),
+        ),
+      );
+      qc.invalidateQueries({ queryKey: ["submissions", submissionId, "detail"] });
+      qc.invalidateQueries({ queryKey: ["results"] });
+      qc.invalidateQueries({ queryKey: ["exams", examId, "results"] });
+      toast.success("Scores saved");
+    } catch {
+      toast.error("Failed to save some scores");
+    } finally {
+      setIsSavingAll(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -233,6 +273,16 @@ function ReviewDrawer({
                 Total: <span className="text-blue-400">{sub.totalScore}/{sub.maxScore}</span>
               </div>
             )}
+            {dirtyAnswers.length > 0 && (
+              <button
+                onClick={handleSaveAll}
+                disabled={isSavingAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg transition-colors"
+              >
+                {isSavingAll && <Loader2 size={11} className="animate-spin" />}
+                Save Scores ({dirtyAnswers.length})
+              </button>
+            )}
             <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
               <X size={18} />
             </button>
@@ -250,6 +300,22 @@ function ReviewDrawer({
               No answers submitted.
             </div>
           ) : (
+            <>
+              {/* Recording */}
+              {sub.recordingUrl && (
+                <div className="px-5 py-4 border-b border-slate-700/60">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                    <Video size={12} /> Exam Recording
+                  </p>
+                  <video
+                    src={sub.recordingUrl}
+                    controls
+                    preload="metadata"
+                    className="w-full rounded-lg bg-black border border-slate-700/60"
+                  />
+                </div>
+              )}
+
             <div className="divide-y divide-slate-700/60">
               {sub.answers.map((answer, i) => (
                 <AnswerPanel
@@ -257,16 +323,14 @@ function ReviewDrawer({
                   answer={answer}
                   index={i}
                   monacoLang={monacoLang}
-                  isSaving={isSaving}
-                  onOverride={(score) =>
-                    override(
-                      { answerId: answer.id, score },
-                      { onSuccess: () => toast.success("Score updated") }
-                    )
+                  localScore={localScores[answer.id] ?? answer.score}
+                  onScoreChange={(answerId, score) =>
+                    setLocalScores((prev) => ({ ...prev, [answerId]: score }))
                   }
                 />
               ))}
             </div>
+            </>
           )}
         </div>
       </div>
@@ -280,22 +344,22 @@ function AnswerPanel({
   answer,
   index,
   monacoLang,
-  isSaving,
-  onOverride,
+  localScore,
+  onScoreChange,
 }: {
   answer: SubmissionAnswer;
   index: number;
   monacoLang: string;
-  isSaving: boolean;
-  onOverride: (score: number) => void;
+  localScore: number;
+  onScoreChange: (answerId: string, score: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const [scoreInput, setScoreInput] = useState(String(answer.score));
+  const [scoreInput, setScoreInput] = useState(String(localScore));
   const maxPoints = answer.question?.points ?? 0;
 
   useEffect(() => {
-    setScoreInput(String(answer.score));
-  }, [answer.score]);
+    setScoreInput(String(localScore));
+  }, [localScore]);
 
   // Parse test results JSON stored as string
   type TestResult = { testCaseId: string; passed: boolean; actualOutput: string; expectedOutput: string; statusDesc: string };
@@ -304,13 +368,12 @@ function AnswerPanel({
     try { testResults = JSON.parse(answer.testResults); } catch { /* empty */ }
   }
 
-  function handleScoreSave() {
-    const n = parseInt(scoreInput, 10);
-    if (isNaN(n) || n < 0 || n > maxPoints) {
-      toast.error(`Score must be between 0 and ${maxPoints}`);
-      return;
+  function handleScoreChange(value: string) {
+    setScoreInput(value);
+    const n = parseInt(value, 10);
+    if (!isNaN(n) && n >= 0 && (maxPoints === 0 || n <= maxPoints)) {
+      onScoreChange(answer.id, n);
     }
-    onOverride(n);
   }
 
   return (
@@ -408,18 +471,13 @@ function AnswerPanel({
               min={0}
               max={maxPoints}
               value={scoreInput}
-              onChange={(e) => setScoreInput(e.target.value)}
+              onChange={(e) => handleScoreChange(e.target.value)}
               className="w-20 px-2.5 py-1.5 text-sm font-mono bg-slate-800 border border-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
             <span className="text-xs text-slate-500">/ {maxPoints}</span>
-            <button
-              onClick={handleScoreSave}
-              disabled={isSaving || scoreInput === String(answer.score)}
-              className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-1.5"
-            >
-              {isSaving && <Loader2 size={11} className="animate-spin" />}
-              Save
-            </button>
+            {localScore !== answer.score && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block flex-shrink-0" title="Unsaved change" />
+            )}
           </div>
         </>
       )}

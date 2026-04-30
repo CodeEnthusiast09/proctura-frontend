@@ -1,5 +1,3 @@
-// src/lib/caseTransform.ts
-
 function toSnakeCase(str: string): string {
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
@@ -17,7 +15,7 @@ export function convertCamelToSnake(obj: unknown): unknown {
       Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
         toSnakeCase(k),
         convertCamelToSnake(v),
-      ])
+      ]),
     );
   }
   return obj;
@@ -32,7 +30,7 @@ export function convertSnakeToCamel(obj: unknown): unknown {
       Object.entries(obj as Record<string, unknown>).map(([k, v]) => [
         toCamelCase(k),
         convertSnakeToCamel(v),
-      ])
+      ]),
     );
   }
   return obj;

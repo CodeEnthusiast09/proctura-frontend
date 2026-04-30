@@ -1,11 +1,13 @@
-// src/lib/axios.ts
 import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
   type AxiosError,
 } from "axios";
 import toast from "react-hot-toast";
-import { retrieveFromLocalStorage, removeFromLocalStorage } from "./localStorage";
+import {
+  retrieveFromLocalStorage,
+  removeFromLocalStorage,
+} from "./localStorage";
 import { convertCamelToSnake, convertSnakeToCamel } from "./caseTransform";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
@@ -64,7 +66,10 @@ function createAxiosInstance(baseURL: string) {
       if (status === 401) {
         removeFromLocalStorage("token");
         removeFromLocalStorage("user");
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        if (
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/login"
+        ) {
           window.location.href = "/login";
         }
       } else if (status !== 404 && status !== 422) {
@@ -74,7 +79,7 @@ function createAxiosInstance(baseURL: string) {
 
       // Rethrow with the extracted message so hook onError handlers get a clean Error
       return Promise.reject(new Error(message));
-    }
+    },
   );
 
   return instance;

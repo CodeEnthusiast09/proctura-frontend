@@ -1,5 +1,3 @@
-// src/interfaces/submission.ts
-
 export type SubmissionStatus = "in_progress" | "submitted" | "graded";
 
 export interface TestCaseResult {
@@ -24,7 +22,12 @@ export interface SubmissionAnswer {
     id: string;
     body: string;
     points: number;
-    testCases?: { id: string; input?: string; expectedOutput: string; isHidden: boolean }[];
+    testCases?: {
+      id: string;
+      input?: string;
+      expectedOutput: string;
+      isHidden: boolean;
+    }[];
   };
 }
 
@@ -39,11 +42,31 @@ export interface Submission {
   totalScore: number;
   maxScore: number;
   violationCount: number;
+  recordingUrl?: string;
   answers?: SubmissionAnswer[];
   exam?: { title: string; course?: { code: string } };
   student?: { firstName: string; lastName: string; matricNumber?: string };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CloudinaryToken {
+  timestamp: number;
+  signature: string;
+  apiKey: string;
+  cloudName: string;
+  folder: string;
+}
+
+export interface MinIOToken {
+  uploadUrl: string;
+  publicUrl: string;
+}
+
+export interface UploadToken {
+  provider: "cloudinary" | "minio";
+  cloudinary?: CloudinaryToken;
+  minio?: MinIOToken;
 }
 
 export interface AllResultsRow extends Submission {

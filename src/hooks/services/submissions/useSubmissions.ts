@@ -1,4 +1,5 @@
 "use client";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { submissionsService } from "@/services/client/submissions";
 import type {
@@ -35,10 +36,9 @@ export function useSaveAnswer() {
   });
 }
 
-export function useSubmitExam(onSuccess?: (submissionId: string) => void) {
-  return useMutation<ApiResponse<Submission>, Error, string>({
-    mutationFn: (submissionId) => submissionsService.submit(submissionId),
-    onSuccess: (_, submissionId) => onSuccess?.(submissionId),
+export function useSubmitExam() {
+  return useMutation<ApiResponse<Submission>, Error, { submissionId: string }>({
+    mutationFn: ({ submissionId }) => submissionsService.submit(submissionId),
   });
 }
 
@@ -112,7 +112,9 @@ export function useOverrideScore(submissionId: string, examId?: string) {
     mutationFn: ({ answerId, score }) =>
       submissionsService.overrideScore(submissionId, answerId, score),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["submissions", submissionId, "detail"] });
+      qc.invalidateQueries({
+        queryKey: ["submissions", submissionId, "detail"],
+      });
       qc.invalidateQueries({ queryKey: ["results"] });
       if (examId) {
         qc.invalidateQueries({ queryKey: ["exams", examId, "results"] });

@@ -11,6 +11,12 @@ export const submissionsService = {
   submit: (submissionId: string) =>
     api.post(`/submissions/${submissionId}/submit`),
 
+  getUploadToken: (submissionId: string, sizeBytes: number) =>
+    api.get(`/submissions/${submissionId}/upload-token`, { params: { size: sizeBytes } }),
+
+  updateRecordingUrl: (submissionId: string, recordingUrl: string) =>
+    api.patch(`/submissions/${submissionId}/recording`, { recording_url: recordingUrl }),
+
   logViolation: (submissionId: string, reason: string) =>
     api.post(`/submissions/${submissionId}/violation`, { reason }),
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { InferType } from "yup";
@@ -13,7 +13,16 @@ import { resetPasswordSchema } from "@/validations/auth";
 
 type FormData = InferType<typeof resetPasswordSchema>;
 
+// useSearchParams() must be inside Suspense for static prerender to bail out.
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
+  );
+}
+
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [showPassword, setShowPassword] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { InferType } from "yup";
@@ -12,7 +12,18 @@ import { acceptInviteSchema } from "@/validations/auth";
 
 type FormData = InferType<typeof acceptInviteSchema>;
 
+// Next.js requires useSearchParams() to live inside a Suspense boundary so
+// the static prerender can bail out cleanly. The boundary is the default
+// export; the inner component does the real work.
 export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={null}>
+      <AcceptInviteForm />
+    </Suspense>
+  );
+}
+
+function AcceptInviteForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [showPassword, setShowPassword] = useState(false);

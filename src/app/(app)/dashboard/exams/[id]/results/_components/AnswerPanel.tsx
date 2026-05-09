@@ -25,12 +25,14 @@ export function AnswerPanel({
   index,
   monacoLang,
   localScore,
+  canOverride,
   onScoreChange,
 }: {
   answer: SubmissionAnswer;
   index: number;
   monacoLang: string;
   localScore: number;
+  canOverride: boolean;
   onScoreChange: (answerId: string, score: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -165,23 +167,31 @@ export function AnswerPanel({
             </div>
           )}
 
-          {/* Score override */}
+          {/* Score (read-only for non-lecturers) */}
           <div className="flex items-center gap-3 pt-2 border-t border-slate-700/40">
             <span className="text-xs text-slate-400 font-semibold">Score:</span>
-            <input
-              type="number"
-              min={0}
-              max={maxPoints}
-              value={scoreInput}
-              onChange={(e) => handleScoreChange(e.target.value)}
-              className="w-20 px-2.5 py-1.5 text-sm font-mono bg-slate-800 border border-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-            <span className="text-xs text-slate-500">/ {maxPoints}</span>
-            {localScore !== answer.score && (
-              <span
-                className="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0"
-                title="Unsaved change"
-              />
+            {canOverride ? (
+              <>
+                <input
+                  type="number"
+                  min={0}
+                  max={maxPoints}
+                  value={scoreInput}
+                  onChange={(e) => handleScoreChange(e.target.value)}
+                  className="w-20 px-2.5 py-1.5 text-sm font-mono bg-slate-800 border border-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+                <span className="text-xs text-slate-500">/ {maxPoints}</span>
+                {localScore !== answer.score && (
+                  <span
+                    className="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0"
+                    title="Unsaved change"
+                  />
+                )}
+              </>
+            ) : (
+              <span className="text-sm font-mono text-white">
+                {localScore} / {maxPoints}
+              </span>
             )}
           </div>
         </>

@@ -52,8 +52,8 @@ export default function AcceptInvitePage() {
             Your account has been activated successfully.
           </p>
           <p className="text-sm text-slate dark:text-slate-400">
-            When it&apos;s exam time, use the link provided by your lecturer to
-            access your exam.
+            On exam day, your lecturer or proctor will tell you where to sign
+            in to take your exam.
           </p>
         </div>
       </AuthCard>

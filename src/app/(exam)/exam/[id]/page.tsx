@@ -2,7 +2,15 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, BookOpen, Code2, AlertCircle, Loader2 } from "lucide-react";
+import {
+  Clock,
+  BookOpen,
+  Code2,
+  AlertCircle,
+  Loader2,
+  Camera,
+  CheckCircle2,
+} from "lucide-react";
 import { useExam, useAvailableExams } from "@/hooks/services/exams";
 import { useStartExam, useMySubmission } from "@/hooks/services/submissions";
 import { retrieveFromLocalStorage } from "@/lib/localStorage";
@@ -11,6 +19,8 @@ import type { Submission } from "@/interfaces";
 function submissionKey(examId: string) {
   return `exam_submission_${examId}`;
 }
+
+type CameraStatus = "checking" | "ready" | "denied";
 
 export default function ExamStartPage({
   params,
@@ -29,10 +39,58 @@ export default function ExamStartPage({
 
   const [hasResumable, setHasResumable] = useState(false);
 
+  // ── Pre-request camera permission ────────────────────────────────────────────
+  // Triggering getUserMedia here means the browser prompt fires on this page,
+  // not after fullscreen on /take. The browser remembers the grant for the
+  // origin, so no second prompt drops the student out of fullscreen mid-exam.
+  const [cameraStatus, setCameraStatus] = useState<CameraStatus>("checking");
+  useEffect(() => {
+    let cancelled = false;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraStatus("denied");
+      return;
+    }
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        // Stop tracks immediately — we only wanted the permission grant.
+        stream.getTracks().forEach((t) => t.stop());
+        if (!cancelled) setCameraStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setCameraStatus("denied");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ── Resume detection ─────────────────────────────────────────────────────────
+  // Two paths produce a resumable: a submission already in localStorage (same
+  // browser), or an in_progress submission on the server (different browser /
+  // cleared storage). The server path is what was causing "you have already
+  // started this exam" toasts to spam — clicking Start kept hitting the API.
   useEffect(() => {
     const stored = retrieveFromLocalStorage<Submission>(submissionKey(id));
     if (stored?.status === "in_progress") setHasResumable(true);
   }, [id]);
+
+  const { data: mySubmissionData, isLoading: isCheckingSubmission } =
+    useMySubmission(id);
+  const existingSubmission = mySubmissionData?.data?.data;
+  const alreadySubmitted =
+    !!existingSubmission && existingSubmission.status !== "in_progress";
+
+  useEffect(() => {
+    if (isCheckingSubmission || !existingSubmission) return;
+    if (existingSubmission.status === "in_progress") {
+      localStorage.setItem(
+        submissionKey(id),
+        JSON.stringify(existingSubmission),
+      );
+      setHasResumable(true);
+    }
+  }, [isCheckingSubmission, existingSubmission, id]);
 
   useEffect(() => {
     if (isCheckingAccess || isLoading) return;
@@ -41,19 +99,13 @@ export default function ExamStartPage({
     }
   }, [isCheckingAccess, isLoading, isEnrolled, router, id]);
 
-  const { data: mySubmissionData, isLoading: isCheckingSubmission } =
-    useMySubmission(id);
-  const existingSubmission = mySubmissionData?.data?.data;
-  const alreadySubmitted =
-    !!existingSubmission && existingSubmission.status !== "in_progress";
-
   const { mutate: startExam, isPending } = useStartExam((submission) => {
     localStorage.setItem(submissionKey(id), JSON.stringify(submission));
     router.push(`/exam/${id}/take`);
   });
 
   function handleStart() {
-    document.documentElement.requestFullscreen?.().catch(() => { });
+    document.documentElement.requestFullscreen?.().catch(() => {});
     if (hasResumable) {
       router.push(`/exam/${id}/take`);
     } else {
@@ -138,6 +190,8 @@ export default function ExamStartPage({
             </p>
           </div>
 
+          <CameraStatusPill status={cameraStatus} />
+
           {alreadySubmitted ? (
             <div className="mt-6">
               <div className="w-full flex items-center justify-center gap-2 bg-slate-800 text-slate-500 font-semibold py-3 rounded-xl cursor-not-allowed select-none">
@@ -147,7 +201,9 @@ export default function ExamStartPage({
           ) : (
             <button
               onClick={handleStart}
-              disabled={isPending || isCheckingSubmission}
+              disabled={
+                isPending || isCheckingSubmission || cameraStatus === "checking"
+              }
               className="mt-6 w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               {(isPending || isCheckingSubmission) && (
@@ -162,6 +218,35 @@ export default function ExamStartPage({
           Once you start, the timer begins and cannot be paused.
         </p>
       </div>
+    </div>
+  );
+}
+
+function CameraStatusPill({ status }: { status: CameraStatus }) {
+  if (status === "checking") {
+    return (
+      <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+        <Loader2 size={13} className="animate-spin" />
+        Checking camera and microphone access…
+      </div>
+    );
+  }
+  if (status === "ready") {
+    return (
+      <div className="mt-3 flex items-center gap-2 text-xs text-emerald-400">
+        <CheckCircle2 size={13} />
+        Camera and microphone ready.
+      </div>
+    );
+  }
+  return (
+    <div className="mt-3 flex items-start gap-2 text-xs text-amber-400">
+      <Camera size={13} className="mt-0.5 shrink-0" />
+      <span>
+        Camera access not granted. You can still take the exam, but the session
+        won&apos;t be recorded. To enable recording, allow camera access in your
+        browser and reload this page.
+      </span>
     </div>
   );
 }

@@ -14,14 +14,17 @@ export const STATUS_STYLES: Record<string, string> = {
 export function ExamCard({
   exam,
   isStudent,
+  canManage,
   onEdit,
   onDelete,
 }: {
   exam: Exam;
   isStudent: boolean;
+  canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const isStaff = !isStudent;
   return (
     <div className="bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between gap-4">
@@ -55,14 +58,16 @@ export function ExamCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {!isStudent && (
+          {isStaff && (
+            <Link
+              href={`/dashboard/exams/${exam.id}`}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-navy dark:text-blue-300 bg-navy/5 dark:bg-navy/20 rounded-lg hover:bg-navy/10 dark:hover:bg-navy/30 transition-colors"
+            >
+              {canManage ? "Builder" : "View"} <ChevronRight size={12} />
+            </Link>
+          )}
+          {canManage && (
             <>
-              <Link
-                href={`/dashboard/exams/${exam.id}`}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-navy dark:text-blue-300 bg-navy/5 dark:bg-navy/20 rounded-lg hover:bg-navy/10 dark:hover:bg-navy/30 transition-colors"
-              >
-                Builder <ChevronRight size={12} />
-              </Link>
               <button
                 onClick={onEdit}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-navy dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"

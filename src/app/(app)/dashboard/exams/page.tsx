@@ -13,6 +13,7 @@ import { DeleteExam } from "./_components/DeleteExam";
 export default function ExamsPage() {
   const user = useCurrentUser();
   const isStudent = user?.role === "student";
+  const canManage = user?.role === "lecturer";
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Exam | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Exam | null>(null);
@@ -26,6 +27,12 @@ export default function ExamsPage() {
     ? (availableData?.data?.data ?? [])
     : (allExamsData?.data?.data ?? []);
 
+  const subtitle = isStudent
+    ? "View and take your scheduled exams"
+    : canManage
+      ? "Manage exams across your courses"
+      : "All exams created by lecturers in your school";
+
   return (
     <div>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -33,13 +40,9 @@ export default function ExamsPage() {
           <h1 className="font-plus text-2xl font-bold text-navy-dark dark:text-white">
             {isStudent ? "My Exams" : "Exams"}
           </h1>
-          <p className="text-sm text-slate dark:text-slate-400 mt-1">
-            {isStudent
-              ? "View and take your scheduled exams"
-              : "Manage exams across your courses"}
-          </p>
+          <p className="text-sm text-slate dark:text-slate-400 mt-1">{subtitle}</p>
         </div>
-        {!isStudent && (
+        {canManage && (
           <button
             onClick={() => setCreateOpen(true)}
             className="flex items-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
@@ -75,6 +78,7 @@ export default function ExamsPage() {
               key={exam.id}
               exam={exam}
               isStudent={isStudent}
+              canManage={canManage}
               onEdit={() => setEditTarget(exam)}
               onDelete={() => setDeleteTarget(exam)}
             />

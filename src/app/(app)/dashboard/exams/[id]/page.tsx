@@ -5,6 +5,7 @@ import { use } from "react";
 import Link from "next/link";
 import { ArrowLeft, Plus, Loader2, Clock, BarChart3 } from "lucide-react";
 import { useExam, useUpdateExamStatus } from "@/hooks/services/exams";
+import { useCurrentUser } from "@/hooks/common/useCurrentUser";
 import type { Question, TestCase } from "@/interfaces";
 import { QuestionCard } from "./_components/QuestionCard";
 import { QuestionModal } from "./_components/QuestionModal";
@@ -41,6 +42,8 @@ export default function ExamBuilderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const user = useCurrentUser();
+  const canManage = user?.role === "lecturer";
   const { data, isLoading } = useExam(id);
   const exam = data?.data?.data;
   const [expandedQ, setExpandedQ] = useState<string | null>(null);
@@ -124,7 +127,7 @@ export default function ExamBuilderPage({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {STATUS_TRANSITIONS[exam.status] && (
+              {canManage && STATUS_TRANSITIONS[exam.status] && (
                 <button
                   onClick={advanceStatus}
                   disabled={updateExamStatus.isPending}
@@ -166,7 +169,7 @@ export default function ExamBuilderPage({
             ({questions.length})
           </span>
         </h2>
-        {exam.status === "draft" && (
+        {canManage && exam.status === "draft" && (
           <button
             onClick={() => setAddQOpen(true)}
             className="flex items-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
@@ -182,7 +185,7 @@ export default function ExamBuilderPage({
           <p className="text-sm text-slate dark:text-slate-400 mb-3">
             No questions yet.
           </p>
-          {exam.status === "draft" && (
+          {canManage && exam.status === "draft" && (
             <button
               onClick={() => setAddQOpen(true)}
               className="text-sm font-semibold text-navy dark:text-blue-400 hover:underline"
@@ -200,6 +203,7 @@ export default function ExamBuilderPage({
               index={idx}
               examId={id}
               examStatus={exam.status}
+              canManage={canManage}
               expanded={expandedQ === q.id}
               onToggle={() => setExpandedQ(expandedQ === q.id ? null : q.id)}
               onEdit={() => setEditQ(q)}

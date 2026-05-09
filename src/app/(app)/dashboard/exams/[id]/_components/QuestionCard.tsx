@@ -15,6 +15,7 @@ export function QuestionCard({
   question,
   index,
   examStatus,
+  canManage,
   expanded,
   onToggle,
   onEdit,
@@ -27,6 +28,7 @@ export function QuestionCard({
   index: number;
   examId: string;
   examStatus: string;
+  canManage: boolean;
   expanded: boolean;
   onToggle: () => void;
   onEdit: () => void;
@@ -36,7 +38,7 @@ export function QuestionCard({
   onDeleteTestCase: (tc: TestCase) => void;
 }) {
   const testCases = question.testCases ?? [];
-  const isDraft = examStatus === "draft";
+  const isEditable = canManage && examStatus === "draft";
 
   return (
     <div className="bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl overflow-hidden">
@@ -66,7 +68,7 @@ export function QuestionCard({
           className="flex items-center gap-1 shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
-          {isDraft && (
+          {isEditable && (
             <>
               <button
                 onClick={onEdit}
@@ -98,7 +100,7 @@ export function QuestionCard({
             <p className="text-xs font-semibold text-slate uppercase tracking-wide">
               Test Cases
             </p>
-            {isDraft && (
+            {isEditable && (
               <button
                 onClick={onAddTestCase}
                 className="flex items-center gap-1 text-xs font-semibold text-navy dark:text-blue-400 hover:underline"
@@ -152,7 +154,7 @@ export function QuestionCard({
                           </>
                         )}
                       </span>
-                      {isDraft && (
+                      {isEditable && (
                         <>
                           <button
                             onClick={() => onEditTestCase(tc)}

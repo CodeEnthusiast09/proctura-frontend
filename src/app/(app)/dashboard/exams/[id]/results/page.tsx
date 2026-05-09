@@ -8,6 +8,7 @@ import {
   useExamResults,
   useReleaseResults,
 } from "@/hooks/services/exams";
+import { useCurrentUser } from "@/hooks/common/useCurrentUser";
 import type { Submission } from "@/interfaces";
 import { ResultRow } from "./_components/ResultRow";
 import { ReviewDrawer } from "./_components/ReviewDrawer";
@@ -18,6 +19,8 @@ export default function ResultsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const user = useCurrentUser();
+  const canManage = user?.role === "lecturer";
   const [search, setSearch] = useState("");
   const [reviewId, setReviewId] = useState<string | null>(null);
 
@@ -62,17 +65,20 @@ export default function ResultsPage({
             )}
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => releaseResults.mutate(!resultsReleased)}
-              disabled={releaseResults.isPending}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 ${resultsReleased
-                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                  : "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+            {canManage && (
+              <button
+                onClick={() => releaseResults.mutate(!resultsReleased)}
+                disabled={releaseResults.isPending}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 ${
+                  resultsReleased
+                    ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                    : "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
                 }`}
-            >
-              {resultsReleased ? <EyeOff size={14} /> : <Eye size={14} />}
-              {resultsReleased ? "Hide Results" : "Release Results"}
-            </button>
+              >
+                {resultsReleased ? <EyeOff size={14} /> : <Eye size={14} />}
+                {resultsReleased ? "Hide Results" : "Release Results"}
+              </button>
+            )}
             <div className="relative">
               <Search
                 size={14}

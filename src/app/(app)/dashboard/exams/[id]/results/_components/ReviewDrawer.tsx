@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, Video } from "lucide-react";
 import { useSubmissionDetail } from "@/hooks/services/submissions";
+import { useCurrentUser } from "@/hooks/common/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
 import { submissionsService } from "@/services/client/submissions";
 import { AnswerPanel } from "./AnswerPanel";
@@ -28,6 +29,8 @@ export function ReviewDrawer({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const user = useCurrentUser();
+  const canOverride = user?.role === "lecturer";
   const { data, isLoading } = useSubmissionDetail(submissionId);
   const [localScores, setLocalScores] = useState<Record<string, number>>({});
   const [isSavingAll, setIsSavingAll] = useState(false);
@@ -110,7 +113,7 @@ export function ReviewDrawer({
                 </span>
               </div>
             )}
-            {dirtyAnswers.length > 0 && (
+            {canOverride && dirtyAnswers.length > 0 && (
               <button
                 onClick={handleSaveAll}
                 disabled={isSavingAll}
@@ -164,6 +167,7 @@ export function ReviewDrawer({
                     index={i}
                     monacoLang={monacoLang}
                     localScore={localScores[answer.id] ?? answer.score}
+                    canOverride={canOverride}
                     onScoreChange={(answerId, score) =>
                       setLocalScores((prev) => ({ ...prev, [answerId]: score }))
                     }

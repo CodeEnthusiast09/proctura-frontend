@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useCourses } from "@/hooks/services/courses";
+import { useCurrentUser } from "@/hooks/common/useCurrentUser";
 import type { Course } from "@/interfaces";
 import { CourseModal } from "./_components/CourseModal";
 import { EnrollModal } from "./_components/EnrollModal";
@@ -20,6 +21,9 @@ export default function CoursesPage() {
   const [editTarget, setEditTarget] = useState<Course | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
   const [enrollTarget, setEnrollTarget] = useState<Course | null>(null);
+
+  const user = useCurrentUser();
+  const canManage = user?.role === "lecturer";
 
   const { data, isLoading } = useCourses();
   const courses: Course[] = data?.data?.data ?? [];
@@ -32,16 +36,20 @@ export default function CoursesPage() {
             Courses
           </h1>
           <p className="text-sm text-slate dark:text-slate-400 mt-1">
-            Manage your courses and link exams to them
+            {canManage
+              ? "Manage your courses and link exams to them"
+              : "All courses created by lecturers in your school"}
           </p>
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
-        >
-          <Plus size={16} />
-          New Course
-        </button>
+        {canManage && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
+          >
+            <Plus size={16} />
+            New Course
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -79,27 +87,29 @@ export default function CoursesPage() {
                     {course.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setEnrollTarget(course)}
-                    title="Manage enrollments"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                  >
-                    <Users size={14} />
-                  </button>
-                  <button
-                    onClick={() => setEditTarget(course)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-navy dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(course)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {canManage && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => setEnrollTarget(course)}
+                      title="Manage enrollments"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    >
+                      <Users size={14} />
+                    </button>
+                    <button
+                      onClick={() => setEditTarget(course)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-navy dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(course)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
               <p className="text-xs text-slate dark:text-slate-500">
                 Created {new Date(course.createdAt).toLocaleDateString()}

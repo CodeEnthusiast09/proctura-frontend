@@ -1,5 +1,5 @@
 "use client";
-// src/app/(app)/dashboard/my-results/page.tsx
+
 import Link from "next/link";
 import { Loader2, BarChart2, ExternalLink } from "lucide-react";
 import { useMySubmissions } from "@/hooks/services/submissions";
@@ -85,8 +85,18 @@ function SubmissionRow({ submission }: { submission: Submission }) {
       ? Math.round((submission.totalScore / submission.maxScore) * 100)
       : 0;
 
-  const examTitle = (submission as Submission & { exam?: { title: string; course?: { code: string } } }).exam?.title ?? "—";
-  const courseCode = (submission as Submission & { exam?: { title: string; course?: { code: string } } }).exam?.course?.code ?? "—";
+  const examTitle =
+    (
+      submission as Submission & {
+        exam?: { title: string; course?: { code: string } };
+      }
+    ).exam?.title ?? "—";
+  const courseCode =
+    (
+      submission as Submission & {
+        exam?: { title: string; course?: { code: string } };
+      }
+    ).exam?.course?.code ?? "—";
 
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">

@@ -1,5 +1,5 @@
 "use client";
-// src/components/app/Sidebar.tsx
+
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,6 +11,7 @@ import {
   LogOut,
   X,
   BarChart2,
+  Settings,
 } from "lucide-react";
 import { ProcuturaLogo } from "@/components/landing/Logo";
 import { useCurrentUser } from "@/hooks/common/useCurrentUser";
@@ -61,6 +62,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: BarChart2,
     roles: ["student"],
   },
+  {
+    label: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+    roles: ["super_admin", "school_admin", "lecturer"],
+  },
 ];
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -85,7 +92,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   }
 
   const visibleItems = NAV_ITEMS.filter(
-    (item) => user && item.roles.includes(user.role)
+    (item) => user && item.roles.includes(user.role),
   );
 
   return (
@@ -120,7 +127,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <ul className="space-y-1">
             {visibleItems.map((item) => {
               const Icon = item.icon;
-              const active = pathname === item.href || pathname.startsWith(item.href + "/");
+              const active =
+                pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <li key={item.href}>
                   <Link

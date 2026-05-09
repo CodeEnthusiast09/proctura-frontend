@@ -1,4 +1,3 @@
-// src/components/landing/Navbar.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -25,11 +24,10 @@ export function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
           ? "bg-white/95 dark:bg-[#070d1a]/95 backdrop-blur-sm shadow-sm dark:shadow-slate-900"
           : "bg-transparent"
-      }`}
+        }`}
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
@@ -96,7 +94,10 @@ export function Navbar() {
                 </a>
               ))}
               <hr className="border-slate-100 dark:border-slate-800" />
-              <Link href="/login" className="text-sm font-medium text-navy dark:text-slate-300 py-1">
+              <Link
+                href="/login"
+                className="text-sm font-medium text-navy dark:text-slate-300 py-1"
+              >
                 Sign In
               </Link>
               <a

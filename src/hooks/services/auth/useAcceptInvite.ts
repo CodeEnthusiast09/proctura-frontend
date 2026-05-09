@@ -1,31 +1,40 @@
 "use client";
-// src/hooks/services/auth/useAcceptInvite.ts
+
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
 import { authService } from "@/services/client/auth";
 import { acceptInviteSchema } from "@/validations/auth";
-import type { ApiResponse } from "@/interfaces";
+import { storeInLocalStorage } from "@/lib/localStorage";
+import type { ApiResponse, AuthResponse } from "@/interfaces";
 
 export function useAcceptInvite(token: string) {
-  const router = useRouter();
+  const [activated, setActivated] = useState(false);
 
   const { mutate, isPending } = useMutation<
-    ApiResponse,
+    ApiResponse<AuthResponse>,
     Error,
     InferType<typeof acceptInviteSchema>
   >({
     mutationFn: ({ firstName, lastName, password }) =>
       authService.acceptInvite(token, { firstName, lastName, password }),
-    onSuccess: () => {
-      toast.success("Account activated! Please log in.");
-      router.push("/login");
+    onSuccess: (res) => {
+      if (res.data.success && res.data.data) {
+        const { accessToken: accessTokenValue, user } = res.data.data;
+        storeInLocalStorage("token", accessTokenValue);
+        storeInLocalStorage("user", user);
+        if (user.subdomain) {
+          storeInLocalStorage("subdomain", user.subdomain);
+        }
+      }
+      toast.success("Account activated!");
+      setActivated(true);
     },
     onError: (error) => {
       toast.error(error.message || "Something went wrong.");
     },
   });
 
-  return { mutate, isPending };
+  return { mutate, isPending, activated };
 }

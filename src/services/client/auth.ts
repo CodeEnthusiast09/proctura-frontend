@@ -1,4 +1,3 @@
-// src/services/client/auth.ts
 import { InferType } from "yup";
 import { publicApi } from "@/lib/axios";
 import type {

@@ -1,4 +1,3 @@
-// src/components/landing/Pricing.tsx
 import { Check, ArrowRight } from "lucide-react";
 
 const PLANS = [
@@ -65,11 +64,10 @@ export function Pricing() {
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl p-8 border ${
-                plan.featured
+              className={`relative rounded-2xl p-8 border ${plan.featured
                   ? "bg-navy border-navy shadow-2xl"
                   : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-sm"
-              }`}
+                }`}
             >
               {plan.featured && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -81,20 +79,18 @@ export function Pricing() {
 
               <div className="mb-6">
                 <h3
-                  className={`font-plus text-xl font-bold mb-1 ${
-                    plan.featured
+                  className={`font-plus text-xl font-bold mb-1 ${plan.featured
                       ? "text-white"
                       : "text-navy-dark dark:text-white"
-                  }`}
+                    }`}
                 >
                   {plan.name}
                 </h3>
                 <p
-                  className={`text-sm mb-4 ${
-                    plan.featured
+                  className={`text-sm mb-4 ${plan.featured
                       ? "text-white/60"
                       : "text-slate dark:text-slate-400"
-                  }`}
+                    }`}
                 >
                   {plan.description}
                 </p>
@@ -115,9 +111,8 @@ export function Pricing() {
                   <li key={feature} className="flex items-start gap-3 text-sm">
                     <Check
                       size={16}
-                      className={`mt-0.5 flex-shrink-0 ${
-                        plan.featured ? "text-green-light" : "text-green"
-                      }`}
+                      className={`mt-0.5 flex-shrink-0 ${plan.featured ? "text-green-light" : "text-green"
+                        }`}
                     />
                     <span
                       className={
@@ -134,11 +129,10 @@ export function Pricing() {
 
               <a
                 href={plan.ctaHref}
-                className={`flex items-center justify-center gap-2 font-semibold text-sm px-6 py-3 rounded-lg transition-colors w-full ${
-                  plan.featured
+                className={`flex items-center justify-center gap-2 font-semibold text-sm px-6 py-3 rounded-lg transition-colors w-full ${plan.featured
                     ? "bg-green text-white hover:bg-green-light"
                     : "bg-navy text-white hover:bg-navy-light"
-                }`}
+                  }`}
               >
                 {plan.cta}
                 <ArrowRight size={15} />

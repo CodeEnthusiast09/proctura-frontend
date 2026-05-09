@@ -1,4 +1,3 @@
-// src/components/landing/Features.tsx
 import {
   Code2,
   Shield,
@@ -90,8 +89,8 @@ export function Features() {
             Everything a coding exam needs.
           </h2>
           <p className="text-slate dark:text-slate-400 text-lg">
-            Built specifically for the way universities run programming courses — not a
-            generic quiz tool bolted onto a code editor.
+            Built specifically for the way universities run programming courses
+            — not a generic quiz tool bolted onto a code editor.
           </p>
         </div>
 
@@ -104,7 +103,9 @@ export function Features() {
                 key={feature.title}
                 className="group bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-6 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200"
               >
-                <div className={`${feature.bg} dark:bg-white/5 ${feature.color} w-11 h-11 rounded-xl flex items-center justify-center mb-4`}>
+                <div
+                  className={`${feature.bg} dark:bg-white/5 ${feature.color} w-11 h-11 rounded-xl flex items-center justify-center mb-4`}
+                >
                   <Icon size={20} />
                 </div>
                 <h3 className="font-plus font-semibold text-navy-dark dark:text-white text-base mb-2">

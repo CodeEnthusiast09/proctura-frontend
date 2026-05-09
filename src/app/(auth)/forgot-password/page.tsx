@@ -1,5 +1,5 @@
 "use client";
-// src/app/(auth)/forgot-password/page.tsx
+
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { InferType } from "yup";
@@ -28,8 +28,8 @@ export default function ForgotPasswordPage() {
             <MailCheck size={24} className="text-green" />
           </div>
           <p className="text-sm text-slate dark:text-slate-300 leading-relaxed mb-6">
-            If that email is registered, you&apos;ll receive a password reset link shortly.
-            Check your inbox and spam folder.
+            If that email is registered, you&apos;ll receive a password reset
+            link shortly. Check your inbox and spam folder.
           </p>
           <Link
             href="/login"
@@ -47,7 +47,10 @@ export default function ForgotPasswordPage() {
       title="Forgot password?"
       subtitle="Enter your email and we'll send you a reset link."
     >
-      <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-5">
+      <form
+        onSubmit={handleSubmit((data) => mutate(data))}
+        className="space-y-5"
+      >
         <FormField
           label="Email address"
           type="email"

@@ -1,5 +1,5 @@
 "use client";
-// src/hooks/services/tenants/useTenants.ts
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
@@ -21,9 +21,15 @@ export function useTenants() {
   });
 }
 
-export function useCreateTenant(onSuccess?: (result: CreateTenantResult) => void) {
+export function useCreateTenant(
+  onSuccess?: (result: CreateTenantResult) => void,
+) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<CreateTenantResult>, Error, InferType<typeof createTenantSchema>>({
+  return useMutation<
+    ApiResponse<CreateTenantResult>,
+    Error,
+    InferType<typeof createTenantSchema>
+  >({
     mutationFn: (data) => tenantsService.create(data),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: TENANTS_KEY });
@@ -31,7 +37,7 @@ export function useCreateTenant(onSuccess?: (result: CreateTenantResult) => void
       const result = res.data?.data;
       if (result) onSuccess?.(result);
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -45,7 +51,7 @@ export function useUpdateTenant(id: string, onSuccess?: () => void) {
       toast.success("School updated");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -58,6 +64,6 @@ export function useDeleteTenant(onSuccess?: () => void) {
       toast.success("School deleted");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }

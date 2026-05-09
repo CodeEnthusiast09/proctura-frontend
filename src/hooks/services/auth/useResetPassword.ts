@@ -1,5 +1,5 @@
 "use client";
-// src/hooks/services/auth/useResetPassword.ts
+
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { InferType } from "yup";
@@ -16,7 +16,8 @@ export function useResetPassword(token: string) {
     Error,
     InferType<typeof resetPasswordSchema>
   >({
-    mutationFn: ({ password }) => authService.resetPassword(token, { password }),
+    mutationFn: ({ password }) =>
+      authService.resetPassword(token, { password }),
     onSuccess: () => {
       toast.success("Password reset! You can now log in.");
       router.push("/login");

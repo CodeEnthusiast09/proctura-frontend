@@ -23,10 +23,14 @@ import {
   useLogViolation,
   useRunCode,
 } from "@/hooks/services/submissions";
-import { submissionsService } from "@/services/client/submissions";
-import { retrieveFromLocalStorage } from "@/lib/localStorage";
+import {
+  retrieveFromLocalStorage,
+  removeFromLocalStorage,
+} from "@/lib/localStorage";
 import type { Submission, Question, RunCodeResult } from "@/interfaces";
 import toast from "react-hot-toast";
+import { useRecording } from "./_hooks/useRecording";
+import { useAntiCheat } from "./_hooks/useAntiCheat";
 
 // Lazy-load Monaco to avoid SSR issues
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
@@ -112,20 +116,25 @@ export default function ExamTakePage({
   const [runResults, setRunResults] = useState<RunCodeResult[] | null>(null);
   const [showRunPanel, setShowRunPanel] = useState(false);
 
-  // ── Recording ───────────────────────────────────────────────────────────────
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordingChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
-  const requestingCameraRef = useRef(false);
-  const [isRecording, setIsRecording] = useState(false);
-
   // ── Mutations ───────────────────────────────────────────────────────────────
   const { mutate: saveAnswer } = useSaveAnswer();
   const { mutate: submitExam, isPending: isSubmitting } = useSubmitExam();
   const { mutate: logViolation } = useLogViolation();
   const { mutate: runCode, isPending: isRunning } = useRunCode();
   const [isHandlingSubmit, setIsHandlingSubmit] = useState(false);
+
+  const {
+    previewVideoRef,
+    isRecording,
+    requestingCameraRef,
+    stopRecorder,
+    uploadAndAttach,
+  } = useRecording(submissionId);
+  useAntiCheat({
+    submissionId,
+    requestingCameraRef,
+    onViolation: recordViolation,
+  });
 
   // ── Init timer from server startedAt ───────────────────────────────────────
   useEffect(() => {
@@ -171,177 +180,6 @@ export default function ExamTakePage({
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId, exam]);
-
-  // ── Webcam recording ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!submissionId) return;
-    requestingCameraRef.current = true;
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        streamRef.current = stream;
-        const mimeType = MediaRecorder.isTypeSupported(
-          "video/webm;codecs=vp8,opus",
-        )
-          ? "video/webm;codecs=vp8,opus"
-          : "video/webm";
-        const recorder = new MediaRecorder(stream, {
-          mimeType,
-          videoBitsPerSecond: 400_000,
-        });
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) recordingChunksRef.current.push(e.data);
-        };
-        recorder.start(1000);
-        mediaRecorderRef.current = recorder;
-        setIsRecording(true);
-      })
-      .catch(() => {
-        // Camera access denied — exam continues unrecorded
-      })
-      .finally(() => {
-        requestingCameraRef.current = false;
-      });
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
-  }, [submissionId]);
-
-  // Stops the recorder and returns the collected blob (best-effort, never throws).
-  function stopRecorder(): Promise<Blob | null> {
-    const recorder = mediaRecorderRef.current;
-    if (!recorder || recorder.state === "inactive")
-      return Promise.resolve(null);
-    return new Promise((resolve) => {
-      recorder.onstop = () => {
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-        setIsRecording(false);
-        const blob = new Blob(recordingChunksRef.current, {
-          type: "video/webm",
-        });
-        resolve(blob.size > 0 ? blob : null);
-      };
-      recorder.stop();
-    });
-  }
-
-  // Uploads a blob using an already-fetched upload token. Returns the public URL.
-  async function uploadBlob(
-    blob: Blob,
-    token: import("@/interfaces").UploadToken,
-    subId: string,
-  ): Promise<string | undefined> {
-    try {
-      if (token.provider === "cloudinary" && token.cloudinary) {
-        const sig = token.cloudinary;
-        const form = new FormData();
-        form.append("file", blob, `recording-${subId}.webm`);
-        form.append("api_key", sig.apiKey);
-        form.append("timestamp", String(sig.timestamp));
-        form.append("signature", sig.signature);
-        form.append("folder", sig.folder);
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${sig.cloudName}/video/upload`,
-          { method: "POST", body: form },
-        );
-        const data = (await res.json()) as { secure_url?: string };
-        return data.secure_url ?? undefined;
-      }
-      if (token.provider === "minio" && token.minio) {
-        await fetch(token.minio.uploadUrl, {
-          method: "PUT",
-          body: blob,
-          headers: { "Content-Type": "video/webm" },
-        });
-        return token.minio.publicUrl;
-      }
-    } catch {
-      return undefined;
-    }
-  }
-
-  // Fetches an upload token, uploads a pre-collected blob, then PATCHes the
-  // submission. Call this AFTER stopRecorder() returns the blob — never inline
-  // stopRecorder here, because by the time this runs the component may have
-  // unmounted and the MediaRecorder already been torn down by cleanup.
-  async function uploadAndAttach(subId: string, blob: Blob): Promise<void> {
-    try {
-      const tokenRes = await submissionsService.getUploadToken(
-        subId,
-        blob.size,
-      );
-      const token = tokenRes.data?.data;
-      if (!token) return;
-      const url = await uploadBlob(blob, token, subId);
-      if (url) {
-        await submissionsService.updateRecordingUrl(subId, url);
-      }
-    } catch {
-      // best-effort — recording attachment is non-critical
-    }
-  }
-
-  // Wire the live stream to the preview element once it mounts (isRecording true = element in DOM)
-  useEffect(() => {
-    if (isRecording && streamRef.current && previewVideoRef.current) {
-      previewVideoRef.current.srcObject = streamRef.current;
-    }
-  }, [isRecording]);
-
-  // ── Anti-cheat: tab switch + window switch ─────────────────────────────────
-  const antiCheatEnabled = process.env.NEXT_PUBLIC_ANTI_CHEAT !== "false";
-
-  useEffect(() => {
-    if (!antiCheatEnabled) return;
-    function handleVisibilityChange() {
-      if (document.hidden) recordViolation("tab_switch");
-    }
-    function handleWindowBlur() {
-      if (!document.hidden && !requestingCameraRef.current)
-        recordViolation("window_switch");
-    }
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleWindowBlur);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("blur", handleWindowBlur);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId, antiCheatEnabled]);
-
-  // ── Anti-cheat: fullscreen exit ───────────────────────────────────────────
-  useEffect(() => {
-    if (!antiCheatEnabled) return;
-    function handleFullscreenChange() {
-      if (!document.fullscreenElement) {
-        if (!requestingCameraRef.current) recordViolation("fullscreen_exit");
-        document.documentElement.requestFullscreen?.().catch(() => {});
-      }
-    }
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId, antiCheatEnabled]);
-
-  // ── Anti-cheat: clipboard ──────────────────────────────────────────────────
-  useEffect(() => {
-    if (!antiCheatEnabled) return;
-    function handleCopy() {
-      recordViolation("copy");
-    }
-    function handlePaste() {
-      recordViolation("paste");
-    }
-    document.addEventListener("copy", handleCopy);
-    document.addEventListener("paste", handlePaste);
-    return () => {
-      document.removeEventListener("copy", handleCopy);
-      document.removeEventListener("paste", handlePaste);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId, antiCheatEnabled]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -395,18 +233,37 @@ export default function ExamTakePage({
     [submissionId, exam, currentIndex],
   );
 
+  // Clears the student's session and hard-reloads to /exam/[id], which the
+  // ExamLayout will render as StudentAuth — ready for the next CBT student.
+  async function logoutAndReset(subId: string, blob: Blob | null) {
+    if (blob) {
+      try {
+        await uploadAndAttach(subId, blob);
+      } catch {
+        // best-effort — recording attachment is non-critical
+      }
+    }
+    localStorage.removeItem(submissionKey(id));
+    removeFromLocalStorage("token");
+    removeFromLocalStorage("user");
+    removeFromLocalStorage("subdomain");
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => { });
+    }
+    window.location.replace(`/exam/${id}`);
+  }
+
   async function handleAutoSubmit(reason?: string) {
     if (timerRef.current) clearInterval(timerRef.current);
     if (!submissionId) return;
 
-    // Collect the blob now — before router.replace() unmounts the component and
+    // Collect the blob now — before navigation unmounts the component and
     // the cleanup stops the stream tracks, making the MediaRecorder inactive.
     const blob = await stopRecorder();
+    const subId = submissionId;
 
     if (reason === "3 violations") {
-      localStorage.removeItem(submissionKey(id));
-      router.replace(`/exam/${id}/result?sid=${submissionId}`);
-      if (blob) void uploadAndAttach(submissionId, blob);
+      await logoutAndReset(subId, blob);
       return;
     }
 
@@ -415,21 +272,16 @@ export default function ExamTakePage({
       exam.questions.forEach((q) => {
         const code = answersRef.current[q.id] ?? "";
         if (code.trim()) {
-          saveAnswer({ submissionId, questionId: q.id, code });
+          saveAnswer({ submissionId: subId, questionId: q.id, code });
         }
       });
     }
 
-    const subId = submissionId;
     submitExam(
       { submissionId: subId },
       {
-        onSuccess: (res) => {
-          const sid = res.data?.data?.id ?? subId;
-          localStorage.removeItem(submissionKey(id));
-          router.replace(`/exam/${id}/result?sid=${sid}`);
-          if (blob) void uploadAndAttach(subId, blob);
-        },
+        onSuccess: () => logoutAndReset(subId, blob),
+        onError: () => logoutAndReset(subId, blob),
       },
     );
   }
@@ -441,18 +293,15 @@ export default function ExamTakePage({
 
     // Collect the blob before navigation so the stream is still active.
     const blob = await stopRecorder();
-
     const subId = submissionId;
+
     submitExam(
       { submissionId: subId },
       {
-        onSuccess: (res) => {
-          const sid = res.data?.data?.id ?? subId;
-          localStorage.removeItem(submissionKey(id));
-          router.replace(`/exam/${id}/result?sid=${sid}`);
-          if (blob) void uploadAndAttach(subId, blob);
+        onSuccess: () => logoutAndReset(subId, blob),
+        onError: () => {
+          setIsHandlingSubmit(false);
         },
-        onSettled: () => setIsHandlingSubmit(false),
       },
     );
   }
@@ -501,7 +350,7 @@ export default function ExamTakePage({
   return (
     <div className="flex flex-col h-screen bg-[#0d1117] overflow-hidden">
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-5 py-3 bg-[#161b22] border-b border-slate-700/60 flex-shrink-0">
+      <header className="flex items-center justify-between px-5 py-3 bg-[#161b22] border-b border-slate-700/60 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-xs font-bold tracking-widest text-slate-500 uppercase hidden sm:block">
             Proctura
@@ -512,7 +361,7 @@ export default function ExamTakePage({
           </h1>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Recording indicator */}
           {isRecording && (
             <div className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
@@ -531,11 +380,10 @@ export default function ExamTakePage({
 
           {/* Timer */}
           <div
-            className={`flex items-center gap-1.5 text-sm font-mono font-bold px-3 py-1.5 rounded-lg ${
-              timerWarning
+            className={`flex items-center gap-1.5 text-sm font-mono font-bold px-3 py-1.5 rounded-lg ${timerWarning
                 ? "bg-red-500/10 text-red-400 border border-red-500/20"
                 : "bg-slate-800 text-slate-200"
-            }`}
+              }`}
           >
             <Clock size={13} />
             {formatTime(secondsLeft)}
@@ -560,7 +408,7 @@ export default function ExamTakePage({
       {/* ── Body ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
         {/* Question navigator */}
-        <aside className="w-16 sm:w-20 bg-[#161b22] border-r border-slate-700/60 flex flex-col items-center py-4 gap-2 overflow-y-auto flex-shrink-0">
+        <aside className="w-16 sm:w-20 bg-[#161b22] border-r border-slate-700/60 flex flex-col items-center py-4 gap-2 overflow-y-auto shrink-0">
           {questions.map((q, i) => {
             const hasAnswer = !!(answers[q.id] ?? "").trim();
             const isActive = i === currentIndex;
@@ -569,13 +417,12 @@ export default function ExamTakePage({
                 key={q.id}
                 onClick={() => switchQuestion(i)}
                 title={`Question ${i + 1}`}
-                className={`w-9 h-9 rounded-lg text-xs font-bold transition-colors flex items-center justify-center ${
-                  isActive
+                className={`w-9 h-9 rounded-lg text-xs font-bold transition-colors flex items-center justify-center ${isActive
                     ? "bg-blue-600 text-white"
                     : hasAnswer
                       ? "bg-green-500/15 text-green-400 border border-green-500/30 hover:bg-green-500/25"
                       : "bg-slate-800 text-slate-400 hover:bg-slate-700"
-                }`}
+                  }`}
               >
                 {i + 1}
               </button>
@@ -586,7 +433,7 @@ export default function ExamTakePage({
         {/* Main editor area */}
         <div className="flex flex-col flex-1 min-w-0">
           {/* Question body */}
-          <div className="px-5 py-4 bg-[#161b22] border-b border-slate-700/60 flex-shrink-0 max-h-72 overflow-y-auto">
+          <div className="px-5 py-4 bg-[#161b22] border-b border-slate-700/60 shrink-0 max-h-72 overflow-y-auto">
             {currentQuestion ? (
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
@@ -676,7 +523,7 @@ export default function ExamTakePage({
 
           {/* Run Code Results Panel */}
           {showRunPanel && (
-            <div className="h-48 flex-shrink-0 bg-[#0d1117] border-t border-slate-700/60 flex flex-col">
+            <div className="h-48 shrink-0 bg-[#0d1117] border-t border-slate-700/60 flex flex-col">
               <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/60">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                   Test Results
@@ -703,13 +550,12 @@ export default function ExamTakePage({
                     {runResults.map((r, i) => (
                       <div
                         key={r.testCaseId}
-                        className={`flex items-start gap-3 p-2.5 rounded-lg border text-xs font-mono ${
-                          r.passed
+                        className={`flex items-start gap-3 p-2.5 rounded-lg border text-xs font-mono ${r.passed
                             ? "bg-green-500/5 border-green-500/20"
                             : "bg-red-500/5 border-red-500/20"
-                        }`}
+                          }`}
                       >
-                        <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                        <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                           {r.passed ? (
                             <CircleCheck size={13} className="text-green-400" />
                           ) : (
@@ -753,7 +599,7 @@ export default function ExamTakePage({
       </div>
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="flex items-center justify-between px-5 py-2 bg-[#161b22] border-t border-slate-700/60 text-xs text-slate-500 flex-shrink-0">
+      <footer className="flex items-center justify-between px-5 py-2 bg-[#161b22] border-t border-slate-700/60 text-xs text-slate-500 shrink-0">
         <div className="flex items-center gap-3">
           {isSaving ? (
             <span className="flex items-center gap-1.5 text-slate-400">
@@ -769,42 +615,42 @@ export default function ExamTakePage({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Prev / Next */}
           <button
             onClick={() => switchQuestion(Math.max(0, currentIndex - 1))}
             disabled={currentIndex === 0}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors text-slate-300"
           >
-            <ChevronLeft size={13} /> Prev
+            <ChevronLeft size={15} /> Prev
           </button>
           <button
             onClick={() =>
               switchQuestion(Math.min(questions.length - 1, currentIndex + 1))
             }
             disabled={currentIndex >= questions.length - 1}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors text-slate-300"
           >
-            Next <ChevronRight size={13} />
+            Next <ChevronRight size={15} />
           </button>
 
           <button
             onClick={() => saveCurrentAnswer(false)}
             disabled={isSaving}
-            className="flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 disabled:opacity-40 transition-colors text-slate-400 hover:text-slate-200"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors text-slate-300 hover:text-white"
           >
-            <Save size={11} /> Save
+            <Save size={14} /> Save
           </button>
 
           <button
             onClick={handleRunCode}
             disabled={isRunning || !submissionId || !currentQuestion}
-            className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-600/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-600/25 disabled:opacity-40 transition-colors text-xs font-semibold"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/25 hover:border-emerald-500/50 disabled:opacity-40 transition-colors text-sm font-semibold"
           >
             {isRunning ? (
-              <Loader2 size={11} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" />
             ) : (
-              <Play size={11} />
+              <Play size={14} />
             )}
             Run Code
           </button>
@@ -823,7 +669,9 @@ export default function ExamTakePage({
           />
           <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/60 rounded px-1.5 py-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-red-400 tracking-wide">REC</span>
+            <span className="text-[10px] font-bold text-red-400 tracking-wide">
+              REC
+            </span>
           </div>
         </div>
       )}

@@ -1,4 +1,3 @@
-// src/validations/course.ts
 import * as Yup from "yup";
 
 export const courseSchema = Yup.object({

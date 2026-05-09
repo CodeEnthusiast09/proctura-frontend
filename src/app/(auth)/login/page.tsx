@@ -1,5 +1,5 @@
 "use client";
-// src/app/(auth)/login/page.tsx
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -23,17 +23,17 @@ export default function LoginPage() {
   } = useForm<FormData>({ resolver: yupResolver(loginSchema) });
 
   return (
-    <AuthCard
-      title="Welcome back"
-      subtitle="Sign in to your Proctura account"
-    >
-      <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-5">
+    <AuthCard title="Welcome back" subtitle="Sign in to your Proctura account">
+      <form
+        onSubmit={handleSubmit((data) => mutate(data))}
+        className="space-y-5"
+      >
         <FormField
           label="Email address"
-          type="email"
+          type="text"
           placeholder="you@university.edu"
-          error={errors.email?.message}
-          {...register("email")}
+          error={errors.identifier?.message}
+          {...register("identifier")}
         />
 
         <div className="flex flex-col gap-1.5">
@@ -65,7 +65,9 @@ export default function LoginPage() {
             </button>
           </div>
           {errors.password && (
-            <p className="text-xs text-red-500 dark:text-red-400">{errors.password.message}</p>
+            <p className="text-xs text-red-500 dark:text-red-400">
+              {errors.password.message}
+            </p>
           )}
         </div>
 

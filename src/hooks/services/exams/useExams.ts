@@ -1,4 +1,5 @@
 "use client";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
@@ -63,7 +64,7 @@ export function useCreateExam(onSuccess?: () => void) {
       toast.success("Exam created");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -78,7 +79,7 @@ export function useUpdateExam(id: string, onSuccess?: () => void) {
       toast.success("Exam updated");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -91,6 +92,19 @@ export function useUpdateExamStatus(id: string, onSuccess?: () => void) {
       qc.invalidateQueries({ queryKey: EXAMS_KEY });
       toast.success("Exam status updated");
       onSuccess?.();
+    },
+    onError: () => { },
+  });
+}
+
+export function useReleaseResults(examId: string) {
+  const qc = useQueryClient();
+  return useMutation<ApiResponse<Exam>, Error, boolean>({
+    mutationFn: (released) => examsService.releaseResults(examId, released),
+    onSuccess: (_, released) => {
+      qc.invalidateQueries({ queryKey: examKey(examId) });
+      qc.invalidateQueries({ queryKey: examResultsKey(examId) });
+      toast.success(released ? "Results released to students" : "Results hidden from students");
     },
     onError: () => {},
   });
@@ -105,7 +119,7 @@ export function useDeleteExam(onSuccess?: () => void) {
       toast.success("Exam deleted");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -124,7 +138,7 @@ export function useAddQuestion(examId: string, onSuccess?: () => void) {
       toast.success("Question added");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -145,7 +159,7 @@ export function useUpdateQuestion(
       toast.success("Question updated");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -158,7 +172,7 @@ export function useDeleteQuestion(examId: string, onSuccess?: () => void) {
       toast.success("Question deleted");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -183,7 +197,7 @@ export function useAddTestCase(
       );
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -204,7 +218,7 @@ export function useUpdateTestCase(
       toast.success("Test case updated");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -217,6 +231,6 @@ export function useDeleteTestCase(examId: string, onSuccess?: () => void) {
       toast.success("Test case deleted");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }

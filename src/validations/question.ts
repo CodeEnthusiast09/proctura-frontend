@@ -1,4 +1,3 @@
-// src/validations/question.ts
 import * as Yup from "yup";
 
 export const questionSchema = Yup.object({

@@ -1,4 +1,3 @@
-// src/interfaces/api.ts
 import type { AxiosResponse } from "axios";
 
 export interface ApiResponse<T = unknown> extends AxiosResponse {

@@ -1,4 +1,3 @@
-// src/components/landing/Hero.tsx
 import { ArrowRight, Play } from "lucide-react";
 
 export function Hero() {
@@ -30,7 +29,9 @@ export function Hero() {
             <h1 className="font-plus text-4xl sm:text-5xl lg:text-6xl font-bold text-navy-dark dark:text-white leading-[1.1] tracking-tight mb-6">
               The End of Writing{" "}
               <span className="relative inline-block">
-                <span className="relative z-10 text-navy dark:text-blue-300">Code on Paper.</span>
+                <span className="relative z-10 text-navy dark:text-blue-300">
+                  Code on Paper.
+                </span>
                 <svg
                   className="absolute -bottom-2 left-0 w-full"
                   viewBox="0 0 300 12"
@@ -38,15 +39,20 @@ export function Hero() {
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
-                  <path d="M2 9C50 4 150 1 298 9" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
+                  <path
+                    d="M2 9C50 4 150 1 298 9"
+                    stroke="#16a34a"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </span>
             </h1>
 
             <p className="text-lg text-slate dark:text-slate-300 leading-relaxed mb-8 max-w-lg">
-              Proctura gives Nigerian universities a real online coding exam platform — so
-              students can write, run, and submit actual code instead of filling exam sheets
-              by hand.
+              Proctura gives Nigerian universities a real online coding exam
+              platform — so students can write, run, and submit actual code
+              instead of filling exam sheets by hand.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -61,7 +67,10 @@ export function Hero() {
                 href="#how-it-works"
                 className="inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-navy-dark dark:text-white font-semibold px-6 py-3.5 rounded-lg hover:border-navy/30 dark:hover:border-slate-500 transition-colors text-sm"
               >
-                <Play size={14} className="fill-navy dark:fill-white text-navy dark:text-white" />
+                <Play
+                  size={14}
+                  className="fill-navy dark:fill-white text-navy dark:text-white"
+                />
                 See How It Works
               </a>
             </div>
@@ -70,15 +79,17 @@ export function Hero() {
             <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-slate dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
-                  {["#1e3a5f", "#16a34a", "#2d5a9e", "#0f172a"].map((color, i) => (
-                    <div
-                      key={i}
-                      className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-white text-[10px] font-bold"
-                      style={{ backgroundColor: color }}
-                    >
-                      {["U", "L", "S", "F"][i]}
-                    </div>
-                  ))}
+                  {["#1e3a5f", "#16a34a", "#2d5a9e", "#0f172a"].map(
+                    (color, i) => (
+                      <div
+                        key={i}
+                        className="w-7 h-7 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-white text-[10px] font-bold"
+                        style={{ backgroundColor: color }}
+                      >
+                        {["U", "L", "S", "F"][i]}
+                      </div>
+                    ),
+                  )}
                 </div>
                 <span>Built for your campus</span>
               </div>
@@ -119,11 +130,15 @@ function ExamMockup() {
         <div className="bg-navy px-5 py-3 flex items-center justify-between">
           <div>
             <p className="text-white/60 text-xs">CSC301 — Data Structures</p>
-            <p className="text-white font-semibold text-sm">Midterm Examination</p>
+            <p className="text-white font-semibold text-sm">
+              Midterm Examination
+            </p>
           </div>
           <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-white font-mono text-sm font-bold">01:23:45</span>
+            <span className="text-white font-mono text-sm font-bold">
+              01:23:45
+            </span>
           </div>
         </div>
 
@@ -137,10 +152,16 @@ function ExamMockup() {
               Write a function that takes a string and returns it reversed.
             </p>
             <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-              <p className="text-xs text-slate mb-1 font-medium">Sample Input</p>
+              <p className="text-xs text-slate mb-1 font-medium">
+                Sample Input
+              </p>
               <code className="text-xs font-mono text-green">hello</code>
-              <p className="text-xs text-slate mt-2 mb-1 font-medium">Expected Output</p>
-              <code className="text-xs font-mono text-navy dark:text-blue-300">olleh</code>
+              <p className="text-xs text-slate mt-2 mb-1 font-medium">
+                Expected Output
+              </p>
+              <code className="text-xs font-mono text-navy dark:text-blue-300">
+                olleh
+              </code>
             </div>
             <div className="mt-3 flex items-center justify-between text-xs text-slate">
               <span>20 points</span>
@@ -152,7 +173,9 @@ function ExamMockup() {
           <div className="col-span-3 bg-[#1e1e1e]">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
               <div className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="text-white/50 text-xs font-mono">solution.py</span>
+              <span className="text-white/50 text-xs font-mono">
+                solution.py
+              </span>
             </div>
             <div className="p-4 font-mono text-xs leading-relaxed">
               <div>
@@ -193,7 +216,9 @@ function ExamMockup() {
         Live Grading
       </div>
       <div className="absolute -bottom-4 -left-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg rounded-xl px-4 py-2.5 text-xs">
-        <div className="font-semibold text-navy-dark dark:text-white">Test Passed ✓</div>
+        <div className="font-semibold text-navy-dark dark:text-white">
+          Test Passed ✓
+        </div>
         <div className="text-slate dark:text-slate-400">3 / 3 test cases</div>
       </div>
     </div>

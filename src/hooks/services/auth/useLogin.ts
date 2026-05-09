@@ -1,5 +1,5 @@
 "use client";
-// src/hooks/services/auth/useLogin.ts
+
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { InferType } from "yup";
@@ -21,6 +21,12 @@ export function useLogin() {
     onSuccess: (res) => {
       if (res.data.success && res.data.data) {
         const { accessToken: token, user } = res.data.data;
+
+        if (user.role === "student") {
+          toast.error("Student accounts can't sign in here.");
+          return;
+        }
+
         storeInLocalStorage("token", token);
         storeInLocalStorage("user", user);
         if (user.subdomain) {
@@ -28,12 +34,10 @@ export function useLogin() {
         }
         toast.success(`Welcome back, ${user.firstName}`);
 
-        // Role-based redirect
         const roleRedirect: Record<string, string> = {
           super_admin: "/dashboard/schools",
           school_admin: "/dashboard/users",
           lecturer: "/dashboard/exams",
-          student: "/dashboard/exams",
         };
         router.push(roleRedirect[user.role] ?? "/dashboard/exams");
       }

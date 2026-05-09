@@ -1,5 +1,5 @@
 "use client";
-// src/components/ui/Modal.tsx
+
 import { useEffect } from "react";
 import { X } from "lucide-react";
 
@@ -17,7 +17,13 @@ const sizes = {
   lg: "max-w-2xl",
 };
 
-export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  size = "md",
+}: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

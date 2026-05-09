@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -18,7 +17,13 @@ export const metadata: Metadata = {
   title: "Proctura — Online Coding Exams for Universities",
   description:
     "Proctura gives Nigerian universities a real online coding exam platform. Students write, run, and submit actual code instead of writing on paper.",
-  keywords: ["coding exam", "university", "Nigeria", "online exam", "programming"],
+  keywords: [
+    "coding exam",
+    "university",
+    "Nigeria",
+    "online exam",
+    "programming",
+  ],
   openGraph: {
     title: "Proctura — Online Coding Exams for Universities",
     description:
@@ -33,7 +38,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakarta.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${plusJakarta.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen antialiased">
         <Providers>{children}</Providers>
       </body>

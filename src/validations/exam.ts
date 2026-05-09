@@ -1,4 +1,3 @@
-// src/validations/exam.ts
 import * as Yup from "yup";
 
 export const LANGUAGES = [
@@ -31,5 +30,7 @@ export const examSchema = Yup.object({
 export const updateExamSchema = Yup.object({
   title: Yup.string().trim().required("Title is required"),
   instructions: Yup.string().default(""),
-  durationMinutes: Yup.number().min(1, "Minimum 1 minute").required("Duration is required"),
+  durationMinutes: Yup.number()
+    .min(1, "Minimum 1 minute")
+    .required("Duration is required"),
 });

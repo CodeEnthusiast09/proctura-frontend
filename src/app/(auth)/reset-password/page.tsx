@@ -1,5 +1,5 @@
 "use client";
-// src/app/(auth)/reset-password/page.tsx
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -52,7 +52,10 @@ export default function ResetPasswordPage() {
       title="Set new password"
       subtitle="Choose a strong password for your account."
     >
-      <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-5">
+      <form
+        onSubmit={handleSubmit((data) => mutate(data))}
+        className="space-y-5"
+      >
         {(["password", "confirmPassword"] as const).map((field) => {
           const isConfirm = field === "confirmPassword";
           const show = isConfirm ? showConfirm : showPassword;
@@ -91,7 +94,9 @@ export default function ResetPasswordPage() {
                 </button>
               </div>
               {error && (
-                <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
+                <p className="text-xs text-red-500 dark:text-red-400">
+                  {error}
+                </p>
               )}
             </div>
           );

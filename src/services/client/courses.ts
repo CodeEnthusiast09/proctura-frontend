@@ -1,4 +1,3 @@
-// src/services/client/courses.ts
 import { api } from "@/lib/axios";
 import { InferType } from "yup";
 import type { courseSchema } from "@/validations/course";

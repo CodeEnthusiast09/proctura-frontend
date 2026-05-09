@@ -1,5 +1,3 @@
-// src/interfaces/exam.ts
-
 export type ExamStatus = "draft" | "scheduled" | "active" | "closed";
 
 export interface TestCase {
@@ -54,6 +52,7 @@ export interface Exam {
   languageId: number;
   languageName: string;
   status: ExamStatus;
+  resultsReleased: boolean;
   course?: Course;
   questions?: Question[];
   createdAt: string;

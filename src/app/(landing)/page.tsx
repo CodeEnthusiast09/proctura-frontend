@@ -1,4 +1,3 @@
-// src/app/(landing)/page.tsx
 import { Navbar } from "@/components/landing/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { Problem } from "@/components/landing/Problem";

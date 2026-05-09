@@ -1,4 +1,3 @@
-// src/components/auth/FormField.tsx
 import { type InputHTMLAttributes, forwardRef } from "react";
 
 interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -22,10 +21,9 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
           id={inputId}
           suppressHydrationWarning
           className={`w-full px-3.5 py-2.5 rounded-lg border text-sm bg-white dark:bg-slate-900 text-navy-dark dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-colors
-            ${
-              error
-                ? "border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500"
-                : "border-slate-200 dark:border-slate-700 focus:border-navy dark:focus:border-blue-500"
+            ${error
+              ? "border-red-400 dark:border-red-500 focus:border-red-400 dark:focus:border-red-500"
+              : "border-slate-200 dark:border-slate-700 focus:border-navy dark:focus:border-blue-500"
             }`}
           {...props}
         />
@@ -34,7 +32,7 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 FormField.displayName = "FormField";

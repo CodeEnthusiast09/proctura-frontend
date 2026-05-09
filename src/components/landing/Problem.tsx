@@ -1,5 +1,3 @@
-// src/components/landing/Problem.tsx
-
 const PAIN_POINTS = [
   {
     who: "Students",
@@ -39,20 +37,27 @@ export function Problem() {
             Students still write code on paper in 2025.
           </h2>
           <p className="text-slate dark:text-slate-400 text-lg leading-relaxed">
-            In most Nigerian universities, programming exams happen on paper. Students memorize
-            syntax instead of learning to code. Lecturers grade subjectively. Everyone loses.
+            In most Nigerian universities, programming exams happen on paper.
+            Students memorize syntax instead of learning to code. Lecturers
+            grade subjectively. Everyone loses.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-16">
           {PAIN_POINTS.map((group) => (
-            <div key={group.who} className={`${group.bg} border ${group.border} rounded-2xl p-8`}>
+            <div
+              key={group.who}
+              className={`${group.bg} border ${group.border} rounded-2xl p-8`}
+            >
               <h3 className={`font-plus text-lg font-bold mb-5 ${group.color}`}>
                 For {group.who}
               </h3>
               <ul className="space-y-3">
                 {group.points.map((point) => (
-                  <li key={point} className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  <li
+                    key={point}
+                    className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300"
+                  >
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 text-red-400 flex items-center justify-center flex-shrink-0 text-xs">
                       ✕
                     </span>
@@ -72,9 +77,9 @@ export function Problem() {
             A real coding exam environment, built for your campus.
           </h3>
           <p className="text-white/70 text-base max-w-2xl mx-auto">
-            Proctura gives students an actual code editor with a real execution engine. Code runs
-            against automated test cases. Grading is objective, instant, and consistent — no
-            matter who&apos;s marking.
+            Proctura gives students an actual code editor with a real execution
+            engine. Code runs against automated test cases. Grading is
+            objective, instant, and consistent — no matter who&apos;s marking.
           </p>
         </div>
       </div>

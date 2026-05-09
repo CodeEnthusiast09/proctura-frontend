@@ -1,5 +1,3 @@
-// src/interfaces/auth.ts
-
 export type UserRole = "super_admin" | "school_admin" | "lecturer" | "student";
 
 export interface User {

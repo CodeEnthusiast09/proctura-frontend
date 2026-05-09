@@ -1,4 +1,3 @@
-// src/proxy.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const APP_PATHS = [
@@ -45,7 +44,11 @@ export function proxy(request: NextRequest) {
   // Redirect: landing domain trying to access app paths → back to landing
   // (In production only — skip for localhost)
   const isLocalhost = hostname.startsWith("localhost");
-  if (!isLocalhost && !subdomain && APP_PATHS.some((p) => pathname.startsWith(p))) {
+  if (
+    !isLocalhost &&
+    !subdomain &&
+    APP_PATHS.some((p) => pathname.startsWith(p))
+  ) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

@@ -1,5 +1,3 @@
-// src/interfaces/tenant.ts
-
 export interface Tenant {
   id: string;
   name: string;

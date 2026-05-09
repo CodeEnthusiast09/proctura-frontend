@@ -1,11 +1,11 @@
 "use client";
-// src/app/(auth)/accept-invite/page.tsx
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { InferType } from "yup";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { AuthCard, FormField } from "@/components/auth";
 import { useAcceptInvite } from "@/hooks/services/auth";
 import { acceptInviteSchema } from "@/validations/auth";
@@ -17,7 +17,7 @@ export default function AcceptInvitePage() {
   const token = searchParams.get("token") ?? "";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const { mutate, isPending } = useAcceptInvite(token);
+  const { mutate, isPending, activated } = useAcceptInvite(token);
 
   const {
     register,
@@ -33,7 +33,27 @@ export default function AcceptInvitePage() {
             <AlertCircle size={24} className="text-red-500" />
           </div>
           <p className="text-sm text-slate dark:text-slate-300 mb-6">
-            This invite link is invalid or has already been used. Contact your school admin.
+            This invite link is invalid or has already been used. Contact your
+            school admin.
+          </p>
+        </div>
+      </AuthCard>
+    );
+  }
+
+  if (activated) {
+    return (
+      <AuthCard title="You're all set!" subtitle="">
+        <div className="text-center py-4">
+          <div className="w-14 h-14 rounded-full bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 size={24} className="text-green-500" />
+          </div>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
+            Your account has been activated successfully.
+          </p>
+          <p className="text-sm text-slate dark:text-slate-400">
+            When it&apos;s exam time, use the link provided by your lecturer to
+            access your exam.
           </p>
         </div>
       </AuthCard>
@@ -45,7 +65,10 @@ export default function AcceptInvitePage() {
       title="Activate your account"
       subtitle="You've been invited to Proctura. Set up your account to get started."
     >
-      <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-5">
+      <form
+        onSubmit={handleSubmit((data) => mutate(data))}
+        className="space-y-5"
+      >
         <div className="grid grid-cols-2 gap-4">
           <FormField
             label="First name"
@@ -101,7 +124,9 @@ export default function AcceptInvitePage() {
                 </button>
               </div>
               {error && (
-                <p className="text-xs text-red-500 dark:text-red-400">{error}</p>
+                <p className="text-xs text-red-500 dark:text-red-400">
+                  {error}
+                </p>
               )}
             </div>
           );

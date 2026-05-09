@@ -1,5 +1,5 @@
 "use client";
-// src/app/(app)/dashboard/page.tsx
+
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { retrieveFromLocalStorage } from "@/lib/localStorage";

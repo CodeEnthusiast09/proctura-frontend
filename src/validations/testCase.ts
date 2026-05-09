@@ -1,4 +1,3 @@
-// src/validations/testCase.ts
 import * as Yup from "yup";
 
 export const testCaseSchema = Yup.object({

@@ -1,10 +1,14 @@
 "use client";
-// src/hooks/services/users/useUsers.ts
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
 import { usersService } from "@/services/client/users";
-import { inviteLecturerSchema, inviteStudentSchema } from "@/validations/user";
+import {
+  inviteAdminSchema,
+  inviteLecturerSchema,
+  inviteStudentSchema,
+} from "@/validations/user";
 import type { ApiResponse, PaginatedResponse, User } from "@/interfaces";
 
 export const USERS_KEY = ["users"] as const;
@@ -28,16 +32,52 @@ interface InviteResult {
   inviteToken: string;
 }
 
+export function useInviteAdmin(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<
+    ApiResponse<InviteResult>,
+    Error,
+    InferType<typeof inviteAdminSchema>
+  >({
+    mutationFn: (data) => usersService.inviteAdmin(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      toast.success("Admin invited — they will receive an email");
+      onSuccess?.();
+    },
+    onError: () => {},
+  });
+}
+
+export function useInviteAdminToTenant(tenantId: string, onSuccess?: () => void) {
+  return useMutation<
+    ApiResponse<InviteResult>,
+    Error,
+    InferType<typeof inviteAdminSchema>
+  >({
+    mutationFn: (data) => usersService.inviteAdminToTenant(tenantId, data),
+    onSuccess: () => {
+      toast.success("Admin invited — they will receive an email");
+      onSuccess?.();
+    },
+    onError: () => {},
+  });
+}
+
 export function useInviteLecturer(onSuccess?: () => void) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<InviteResult>, Error, InferType<typeof inviteLecturerSchema>>({
+  return useMutation<
+    ApiResponse<InviteResult>,
+    Error,
+    InferType<typeof inviteLecturerSchema>
+  >({
     mutationFn: (data) => usersService.inviteLecturer(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: USERS_KEY });
       toast.success("Invitation sent — lecturer will receive an email");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -48,14 +88,18 @@ interface ImportResult {
 
 export function useInviteStudent(onSuccess?: () => void) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<InviteResult>, Error, InferType<typeof inviteStudentSchema>>({
+  return useMutation<
+    ApiResponse<InviteResult>,
+    Error,
+    InferType<typeof inviteStudentSchema>
+  >({
     mutationFn: (data) => usersService.inviteStudent(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: USERS_KEY });
       toast.success("Invitation sent — student will receive an email");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -67,24 +111,30 @@ export function useImportStudents(onSuccess?: (result: ImportResult) => void) {
       qc.invalidateQueries({ queryKey: USERS_KEY });
       const result = res.data?.data;
       if (result) {
-        toast.success(`Import complete: ${result.created} created, ${result.skipped} skipped`);
+        toast.success(
+          `Import complete: ${result.created} created, ${result.skipped} skipped`,
+        );
         onSuccess?.(result);
       }
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
 export function useToggleUserActive(onSuccess?: () => void) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<User>, Error, { id: string; isActive: boolean }>({
+  return useMutation<
+    ApiResponse<User>,
+    Error,
+    { id: string; isActive: boolean }
+  >({
     mutationFn: ({ id, isActive }) => usersService.update(id, { isActive }),
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: USERS_KEY });
       toast.success(vars.isActive ? "User activated" : "User deactivated");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -97,6 +147,6 @@ export function useDeleteUser(onSuccess?: () => void) {
       toast.success("User removed");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }

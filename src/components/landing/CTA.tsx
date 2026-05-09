@@ -1,4 +1,3 @@
-// src/components/landing/CTA.tsx
 import { ArrowRight, Mail, MessageSquare } from "lucide-react";
 
 export function CTA() {
@@ -17,8 +16,9 @@ export function CTA() {
               Ready to move your exams online?
             </h2>
             <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">
-              We&apos;ll set up your school&apos;s workspace, onboard your admin team, and have
-              you running your first online exam in days — not weeks.
+              We&apos;ll set up your school&apos;s workspace, onboard your admin
+              team, and have you running your first online exam in days — not
+              weeks.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -47,7 +47,9 @@ export function CTA() {
                 { value: "100%", label: "Automated grading" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">
-                  <div className="font-plus text-2xl font-bold text-white mb-1">{stat.value}</div>
+                  <div className="font-plus text-2xl font-bold text-white mb-1">
+                    {stat.value}
+                  </div>
                   <div className="text-white/50 text-sm">{stat.label}</div>
                 </div>
               ))}

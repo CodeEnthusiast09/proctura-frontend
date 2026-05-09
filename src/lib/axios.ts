@@ -68,7 +68,8 @@ function createAxiosInstance(baseURL: string) {
         removeFromLocalStorage("user");
         if (
           typeof window !== "undefined" &&
-          window.location.pathname !== "/login"
+          window.location.pathname !== "/login" &&
+          !window.location.pathname.startsWith("/exam/")
         ) {
           window.location.href = "/login";
         }

@@ -1,11 +1,23 @@
-// src/services/client/users.ts
 import { api } from "@/lib/axios";
 import type { InferType } from "yup";
-import type { inviteLecturerSchema, inviteStudentSchema } from "@/validations/user";
+import type {
+  inviteAdminSchema,
+  inviteLecturerSchema,
+  inviteStudentSchema,
+} from "@/validations/user";
 
 export const usersService = {
   list: (role?: string, page = 1, limit = 50) =>
     api.get("/users", { params: { ...(role ? { role } : {}), page, limit } }),
+
+  inviteAdmin: (payload: InferType<typeof inviteAdminSchema>) =>
+    api.post("/users/invite-admin", payload),
+
+  // Super-admin recovery: invite a school_admin into a specific tenant.
+  inviteAdminToTenant: (
+    tenantId: string,
+    payload: InferType<typeof inviteAdminSchema>,
+  ) => api.post(`/admin/tenants/${tenantId}/invite-admin`, payload),
 
   inviteLecturer: (payload: InferType<typeof inviteLecturerSchema>) =>
     api.post("/users/invite-lecturer", payload),

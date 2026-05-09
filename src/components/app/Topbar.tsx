@@ -1,5 +1,5 @@
 "use client";
-// src/components/app/Topbar.tsx
+
 import { Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useCurrentUser } from "@/hooks/common/useCurrentUser";
@@ -33,10 +33,9 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
         <ThemeToggle />
         {user && (
           <div className="hidden sm:flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-full bg-navy dark:bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-            >
-              {user.firstName[0]}{user.lastName[0]}
+            <div className="w-8 h-8 rounded-full bg-navy dark:bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {user.firstName[0]}
+              {user.lastName[0]}
             </div>
             <span className="text-sm font-medium text-navy-dark dark:text-white">
               {user.firstName}

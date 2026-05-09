@@ -1,4 +1,3 @@
-// src/app/(landing)/layout.tsx
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,6 +6,10 @@ export const metadata: Metadata = {
     "The end of writing code on paper. Proctura gives Nigerian universities a real online coding exam platform — so students can write, run, and submit actual code.",
 };
 
-export default function LandingLayout({ children }: { children: React.ReactNode }) {
+export default function LandingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <>{children}</>;
 }

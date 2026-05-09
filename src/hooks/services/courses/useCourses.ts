@@ -1,5 +1,5 @@
 "use client";
-// src/hooks/services/courses/useCourses.ts
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferType } from "yup";
 import toast from "react-hot-toast";
@@ -19,27 +19,35 @@ export function useCourses() {
 
 export function useCreateCourse(onSuccess?: () => void) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<Course>, Error, InferType<typeof courseSchema>>({
+  return useMutation<
+    ApiResponse<Course>,
+    Error,
+    InferType<typeof courseSchema>
+  >({
     mutationFn: (data) => coursesService.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: COURSES_KEY });
       toast.success("Course created");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
 export function useUpdateCourse(id: string, onSuccess?: () => void) {
   const qc = useQueryClient();
-  return useMutation<ApiResponse<Course>, Error, Partial<InferType<typeof courseSchema>>>({
+  return useMutation<
+    ApiResponse<Course>,
+    Error,
+    Partial<InferType<typeof courseSchema>>
+  >({
     mutationFn: (data) => coursesService.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: COURSES_KEY });
       toast.success("Course updated");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -52,7 +60,7 @@ export function useDeleteCourse(onSuccess?: () => void) {
       toast.success("Course deleted");
       onSuccess?.();
     },
-    onError: () => {},
+    onError: () => { },
   });
 }
 
@@ -70,7 +78,8 @@ export function useCourseEnrollments(courseId: string) {
 export function useEnrollStudents(courseId: string, onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation<ApiResponse, Error, string[]>({
-    mutationFn: (matricNumbers) => coursesService.enroll(courseId, matricNumbers),
+    mutationFn: (matricNumbers) =>
+      coursesService.enroll(courseId, matricNumbers),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: enrollmentKey(courseId) });
       toast.success(res.data?.message ?? "Students enrolled");

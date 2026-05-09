@@ -1,4 +1,3 @@
-// src/components/landing/Footer.tsx
 import { ProcuturaLogo } from "./Logo";
 
 const FOOTER_LINKS = {
@@ -18,19 +17,24 @@ export function Footer() {
               <ProcuturaLogo variant="light" />
             </div>
             <p className="text-sm leading-relaxed max-w-xs">
-              Giving Nigerian universities a real online coding exam platform — so students
-              can write, run, and submit actual code.
+              Giving Nigerian universities a real online coding exam platform —
+              so students can write, run, and submit actual code.
             </p>
           </div>
 
           {/* Links */}
           {Object.entries(FOOTER_LINKS).map(([category, links]) => (
             <div key={category}>
-              <h4 className="text-white font-semibold text-sm mb-4">{category}</h4>
+              <h4 className="text-white font-semibold text-sm mb-4">
+                {category}
+              </h4>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-sm hover:text-white transition-colors">
+                    <a
+                      href="#"
+                      className="text-sm hover:text-white transition-colors"
+                    >
                       {link}
                     </a>
                   </li>
@@ -41,7 +45,9 @@ export function Footer() {
         </div>
 
         <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm">© {new Date().getFullYear()} Proctura. All rights reserved.</p>
+          <p className="text-sm">
+            © {new Date().getFullYear()} Proctura. All rights reserved.
+          </p>
           <p className="text-sm">Built for Nigerian universities 🇳🇬</p>
         </div>
       </div>

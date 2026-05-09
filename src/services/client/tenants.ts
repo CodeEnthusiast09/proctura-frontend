@@ -17,5 +17,8 @@ export const tenantsService = {
     payload: InferType<typeof updateTenantSchema> & { isActive?: boolean },
   ) => api.put(`/admin/tenants/${id}`, payload),
 
+  bulkActive: (ids: string[], isActive: boolean) =>
+    api.patch("/admin/tenants/bulk-active", { ids, is_active: isActive }),
+
   delete: (id: string) => api.delete(`/admin/tenants/${id}`),
 };

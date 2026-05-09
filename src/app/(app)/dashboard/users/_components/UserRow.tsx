@@ -13,16 +13,29 @@ export const ROLE_LABEL: Record<string, string> = {
 export function UserRow({
   user,
   showMatric,
+  selected,
+  onSelectChange,
   onDelete,
 }: {
   user: User;
   showMatric: boolean;
+  selected: boolean;
+  onSelectChange: (next: boolean) => void;
   onDelete: () => void;
 }) {
   const { mutate: toggleActive, isPending: isToggling } = useToggleUserActive();
 
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+      <td className="px-4 py-3.5 w-10">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => onSelectChange(e.target.checked)}
+          aria-label={`Select ${user.firstName} ${user.lastName}`}
+          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-navy dark:text-blue-500 focus:ring-blue-500/40 cursor-pointer"
+        />
+      </td>
       <td className="px-5 py-3.5 font-medium text-navy-dark dark:text-white">
         {user.firstName} {user.lastName}
       </td>

@@ -36,5 +36,8 @@ export const usersService = {
   update: (id: string, payload: { isActive: boolean }) =>
     api.put(`/users/${id}`, payload),
 
+  bulkActive: (ids: string[], isActive: boolean) =>
+    api.patch("/users/bulk-active", { ids, is_active: isActive }),
+
   delete: (id: string) => api.delete(`/users/${id}`),
 };

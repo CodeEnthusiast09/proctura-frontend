@@ -2,22 +2,47 @@
 
 import { useState } from "react";
 import { Building2, Plus, Loader2 } from "lucide-react";
-import { useTenants } from "@/hooks/services/tenants";
+import {
+  useTenants,
+  useBulkUpdateTenantActive,
+} from "@/hooks/services/tenants";
 import type { Tenant } from "@/interfaces";
 import { TenantRow } from "./_components/TenantRow";
 import { CreateTenantModal } from "./_components/CreateTenantModal";
 import { EditTenantModal } from "./_components/EditTenantModal";
 import { DeleteTenantDialog } from "./_components/DeleteTenantDialog";
 import { RecoverAdminModal } from "./_components/RecoverAdminModal";
+import { BulkActionBar } from "@/components/ui/BulkActionBar";
 
 export default function SchoolsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Tenant | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
   const [recoverTarget, setRecoverTarget] = useState<Tenant | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useTenants();
   const tenants: Tenant[] = data?.data?.data ?? [];
+
+  const { mutate: bulkUpdate, isPending: isBulkUpdating } =
+    useBulkUpdateTenantActive(() => setSelectedIds(new Set()));
+
+  const allOnPageSelected =
+    tenants.length > 0 && tenants.every((t) => selectedIds.has(t.id));
+
+  function toggleSelectAll(next: boolean) {
+    if (next) setSelectedIds(new Set(tenants.map((t) => t.id)));
+    else setSelectedIds(new Set());
+  }
+
+  function toggleRow(id: string, next: boolean) {
+    setSelectedIds((prev) => {
+      const copy = new Set(prev);
+      if (next) copy.add(id);
+      else copy.delete(id);
+      return copy;
+    });
+  }
 
   return (
     <div>
@@ -38,6 +63,19 @@ export default function SchoolsPage() {
           Onboard School
         </button>
       </div>
+
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        noun="school"
+        isPending={isBulkUpdating}
+        onActivate={() =>
+          bulkUpdate({ ids: Array.from(selectedIds), isActive: true })
+        }
+        onDeactivate={() =>
+          bulkUpdate({ ids: Array.from(selectedIds), isActive: false })
+        }
+        onClear={() => setSelectedIds(new Set())}
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -61,6 +99,15 @@ export default function SchoolsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                      aria-label="Select all"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-navy dark:text-blue-500 focus:ring-blue-500/40 cursor-pointer"
+                    />
+                  </th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate uppercase tracking-wide">
                     School
                   </th>
@@ -81,6 +128,8 @@ export default function SchoolsPage() {
                   <TenantRow
                     key={tenant.id}
                     tenant={tenant}
+                    selected={selectedIds.has(tenant.id)}
+                    onSelectChange={(next) => toggleRow(tenant.id, next)}
                     onEdit={() => setEditTarget(tenant)}
                     onDelete={() => setDeleteTarget(tenant)}
                     onRecoverAdmin={() => setRecoverTarget(tenant)}

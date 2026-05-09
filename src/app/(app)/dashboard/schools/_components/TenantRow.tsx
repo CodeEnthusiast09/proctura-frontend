@@ -14,11 +14,15 @@ import type { Tenant } from "@/interfaces";
 
 export function TenantRow({
   tenant,
+  selected,
+  onSelectChange,
   onEdit,
   onDelete,
   onRecoverAdmin,
 }: {
   tenant: Tenant;
+  selected: boolean;
+  onSelectChange: (next: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
   onRecoverAdmin: () => void;
@@ -27,6 +31,15 @@ export function TenantRow({
 
   return (
     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+      <td className="px-4 py-3.5 w-10">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => onSelectChange(e.target.checked)}
+          aria-label={`Select ${tenant.name}`}
+          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-navy dark:text-blue-500 focus:ring-blue-500/40 cursor-pointer"
+        />
+      </td>
       <td className="px-5 py-3.5 font-semibold text-navy-dark dark:text-white">
         {tenant.name}
       </td>

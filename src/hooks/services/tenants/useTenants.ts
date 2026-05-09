@@ -55,6 +55,25 @@ export function useUpdateTenant(id: string, onSuccess?: () => void) {
   });
 }
 
+export function useBulkUpdateTenantActive(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<
+    ApiResponse<{ updated: number }>,
+    Error,
+    { ids: string[]; isActive: boolean }
+  >({
+    mutationFn: ({ ids, isActive }) => tenantsService.bulkActive(ids, isActive),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: TENANTS_KEY });
+      const verb = vars.isActive ? "activated" : "deactivated";
+      const noun = vars.ids.length === 1 ? "school" : "schools";
+      toast.success(`${vars.ids.length} ${noun} ${verb}`);
+      onSuccess?.();
+    },
+    onError: () => {},
+  });
+}
+
 export function useDeleteTenant(onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation<ApiResponse, Error, string>({

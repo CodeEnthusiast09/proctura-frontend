@@ -10,13 +10,18 @@ import {
   BookUser,
   ShieldCheck,
 } from "lucide-react";
-import { useUsers, useImportStudents } from "@/hooks/services/users";
+import {
+  useUsers,
+  useImportStudents,
+  useBulkUpdateUserActive,
+} from "@/hooks/services/users";
 import type { User } from "@/interfaces";
 import { UserRow } from "./_components/UserRow";
 import { InviteAdminModal } from "./_components/InviteAdminModal";
 import { InviteLecturerModal } from "./_components/InviteLecturerModal";
 import { InviteStudentModal } from "./_components/InviteStudentModal";
 import { DeleteUserDialog } from "./_components/DeleteUserDialog";
+import { BulkActionBar } from "@/components/ui/BulkActionBar";
 
 type Tab = "school_admin" | "lecturer" | "student";
 
@@ -26,6 +31,7 @@ export default function UsersPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteStudentOpen, setInviteStudentOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useUsers(tab);
@@ -33,6 +39,36 @@ export default function UsersPage() {
 
   const { mutate: importStudents, isPending: isImporting } =
     useImportStudents();
+  const { mutate: bulkUpdate, isPending: isBulkUpdating } =
+    useBulkUpdateUserActive(() => setSelectedIds(new Set()));
+
+  // Selection resets whenever the tab changes — selecting a lecturer then
+  // jumping to the students tab and bulk-deactivating would otherwise apply
+  // the action to the lecturer.
+  function switchTab(next: Tab) {
+    setTab(next);
+    setSelectedIds(new Set());
+  }
+
+  const allOnPageSelected =
+    users.length > 0 && users.every((u) => selectedIds.has(u.id));
+
+  function toggleSelectAll(next: boolean) {
+    if (next) {
+      setSelectedIds(new Set(users.map((u) => u.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  }
+
+  function toggleRow(id: string, next: boolean) {
+    setSelectedIds((prev) => {
+      const copy = new Set(prev);
+      if (next) copy.add(id);
+      else copy.delete(id);
+      return copy;
+    });
+  }
 
   function handleCsvChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -117,7 +153,7 @@ export default function UsersPage() {
         {(["school_admin", "lecturer", "student"] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => switchTab(t)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors capitalize ${tab === t
                 ? "bg-white dark:bg-slate-700 text-navy-dark dark:text-white shadow-sm"
                 : "text-slate dark:text-slate-400 hover:text-navy-dark dark:hover:text-white"
@@ -139,6 +175,20 @@ export default function UsersPage() {
         ))}
       </div>
 
+      {/* ── Bulk action bar ───────────────────────────────────────────────── */}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        noun={tab === "school_admin" ? "admin" : tab}
+        isPending={isBulkUpdating}
+        onActivate={() =>
+          bulkUpdate({ ids: Array.from(selectedIds), isActive: true })
+        }
+        onDeactivate={() =>
+          bulkUpdate({ ids: Array.from(selectedIds), isActive: false })
+        }
+        onClear={() => setSelectedIds(new Set())}
+      />
+
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -152,6 +202,15 @@ export default function UsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={(e) => toggleSelectAll(e.target.checked)}
+                      aria-label="Select all"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-navy dark:text-blue-500 focus:ring-blue-500/40 cursor-pointer"
+                    />
+                  </th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate uppercase tracking-wide">
                     Name
                   </th>
@@ -181,6 +240,8 @@ export default function UsersPage() {
                     key={user.id}
                     user={user}
                     showMatric={tab === "student"}
+                    selected={selectedIds.has(user.id)}
+                    onSelectChange={(next) => toggleRow(user.id, next)}
                     onDelete={() => setDeleteTarget(user)}
                   />
                 ))}

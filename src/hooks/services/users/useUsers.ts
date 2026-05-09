@@ -121,6 +121,25 @@ export function useImportStudents(onSuccess?: (result: ImportResult) => void) {
   });
 }
 
+export function useBulkUpdateUserActive(onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation<
+    ApiResponse<{ updated: number }>,
+    Error,
+    { ids: string[]; isActive: boolean }
+  >({
+    mutationFn: ({ ids, isActive }) => usersService.bulkActive(ids, isActive),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: USERS_KEY });
+      const verb = vars.isActive ? "activated" : "deactivated";
+      const noun = vars.ids.length === 1 ? "user" : "users";
+      toast.success(`${vars.ids.length} ${noun} ${verb}`);
+      onSuccess?.();
+    },
+    onError: () => {},
+  });
+}
+
 export function useToggleUserActive(onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation<

@@ -52,7 +52,6 @@ export interface Exam {
   languageId: number;
   languageName: string;
   status: ExamStatus;
-  resultsReleased: boolean;
   course?: Course;
   questions?: Question[];
   createdAt: string;

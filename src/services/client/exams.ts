@@ -28,9 +28,6 @@ export const examsService = {
 
   results: (id: string) => api.get(`/exams/${id}/results`),
 
-  releaseResults: (id: string, released: boolean) =>
-    api.patch(`/exams/${id}/release-results`, { released }),
-
   // Questions
   addQuestion: (examId: string, payload: InferType<typeof questionSchema>) =>
     api.post(`/exams/${examId}/questions`, payload),

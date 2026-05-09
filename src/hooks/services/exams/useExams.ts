@@ -97,19 +97,6 @@ export function useUpdateExamStatus(id: string, onSuccess?: () => void) {
   });
 }
 
-export function useReleaseResults(examId: string) {
-  const qc = useQueryClient();
-  return useMutation<ApiResponse<Exam>, Error, boolean>({
-    mutationFn: (released) => examsService.releaseResults(examId, released),
-    onSuccess: (_, released) => {
-      qc.invalidateQueries({ queryKey: examKey(examId) });
-      qc.invalidateQueries({ queryKey: examResultsKey(examId) });
-      toast.success(released ? "Results released to students" : "Results hidden from students");
-    },
-    onError: () => {},
-  });
-}
-
 export function useDeleteExam(onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation<ApiResponse, Error, string>({

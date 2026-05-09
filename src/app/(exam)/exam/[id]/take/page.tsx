@@ -122,6 +122,12 @@ export default function ExamTakePage({
   const { mutate: logViolation } = useLogViolation();
   const { mutate: runCode, isPending: isRunning } = useRunCode();
   const [isHandlingSubmit, setIsHandlingSubmit] = useState(false);
+  // Once submit starts, the page stays alive while the recording uploads
+  // (~30–60s). Any API call against the now-submitted submission returns
+  // "Submission is not active" and toasts. This ref short-circuits all the
+  // ambient activity (auto-save, violation logging, fullscreen-exit handler)
+  // until the page navigates away.
+  const isSubmittingRef = useRef(false);
 
   const {
     previewVideoRef,
@@ -175,6 +181,7 @@ export default function ExamTakePage({
   useEffect(() => {
     if (!submissionId || !exam?.questions?.length) return;
     const interval = setInterval(() => {
+      if (isSubmittingRef.current) return;
       saveCurrentAnswer(true);
     }, 30_000);
     return () => clearInterval(interval);
@@ -185,6 +192,10 @@ export default function ExamTakePage({
 
   function recordViolation(reason: string) {
     if (!submissionId) return;
+    // Suppress everything once submit has started — the fullscreen exit that
+    // happens during logoutAndReset would otherwise log a violation against a
+    // submitted submission and surface a confusing toast.
+    if (isSubmittingRef.current) return;
     violationRef.current += 1;
     setViolationCount(violationRef.current);
 
@@ -256,6 +267,9 @@ export default function ExamTakePage({
   }
 
   async function handleAutoSubmit(reason?: string) {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsHandlingSubmit(true);
     if (timerRef.current) clearInterval(timerRef.current);
     if (!submissionId) return;
 
@@ -289,8 +303,10 @@ export default function ExamTakePage({
   }
 
   async function handleManualSubmit() {
-    if (!submissionId || isHandlingSubmit) return;
+    if (!submissionId || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsHandlingSubmit(true);
+    if (timerRef.current) clearInterval(timerRef.current);
     saveCurrentAnswer(true);
 
     // Collect the blob before navigation so the stream is still active.
@@ -302,6 +318,8 @@ export default function ExamTakePage({
       {
         onSuccess: () => logoutAndReset(subId, blob),
         onError: () => {
+          // If the submit POST itself fails, allow another attempt.
+          isSubmittingRef.current = false;
           setIsHandlingSubmit(false);
         },
       },
@@ -659,21 +677,48 @@ export default function ExamTakePage({
         </div>
       </footer>
 
-      {/* ── Webcam preview ────────────────────────────────────────────────── */}
+      {/* ── Webcam preview ──────────────────────────────────────────────────
+        Top-right below the header, small and out of the way of the code
+        editor and the bottom run-code panel. The header already shows a
+        REC badge, so this is just visual reassurance. */}
       {isRecording && (
-        <div className="fixed bottom-14 left-4 z-50">
+        <div className="fixed top-16 right-4 z-50">
           <video
             ref={previewVideoRef}
             autoPlay
             muted
             playsInline
-            className="w-72 h-48 rounded-xl object-cover border-2 border-red-500/60 bg-black shadow-lg"
+            className="w-40 h-24 rounded-lg object-cover border border-red-500/60 bg-black shadow-lg"
           />
-          <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-black/60 rounded px-1.5 py-0.5">
+          <div className="absolute top-1 left-1 flex items-center gap-1 bg-black/70 rounded px-1.5 py-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[10px] font-bold text-red-400 tracking-wide">
               REC
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Submission overlay ──────────────────────────────────────────────
+        Covers the whole take page once submit starts. The recording upload
+        can take 30–60s and the user needs to know not to close the tab. */}
+      {isHandlingSubmit && (
+        <div className="fixed inset-0 z-60 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-[#161b22] border border-slate-700/60 rounded-2xl p-8 max-w-sm text-center shadow-2xl">
+            <Loader2
+              size={32}
+              className="animate-spin text-blue-400 mx-auto mb-4"
+            />
+            <h2 className="font-plus font-bold text-white text-lg mb-2">
+              Submitting your exam
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Saving your work and uploading the exam recording. This can take
+              up to a minute.
+              <span className="text-amber-400 font-semibold">
+                Do not close this tab.
+              </span>
+            </p>
           </div>
         </div>
       )}

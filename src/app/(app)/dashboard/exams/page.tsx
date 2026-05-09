@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BookOpen, Plus, Loader2 } from "lucide-react";
-import { useExams, useAvailableExams } from "@/hooks/services/exams";
+import { useExams } from "@/hooks/services/exams";
 import { useCurrentUser } from "@/hooks/common/useCurrentUser";
 import type { Exam } from "@/interfaces";
 import { ExamCard } from "./_components/ExamCard";
@@ -12,35 +12,28 @@ import { DeleteExam } from "./_components/DeleteExam";
 
 export default function ExamsPage() {
   const user = useCurrentUser();
-  const isStudent = user?.role === "student";
   const canManage = user?.role === "lecturer";
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Exam | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Exam | null>(null);
 
-  const { data: allExamsData, isLoading: allLoading } = useExams();
-  const { data: availableData, isLoading: availableLoading } =
-    useAvailableExams(isStudent);
+  const { data, isLoading } = useExams();
+  const exams: Exam[] = data?.data?.data ?? [];
 
-  const isLoading = isStudent ? availableLoading : allLoading;
-  const exams: Exam[] = isStudent
-    ? (availableData?.data?.data ?? [])
-    : (allExamsData?.data?.data ?? []);
-
-  const subtitle = isStudent
-    ? "View and take your scheduled exams"
-    : canManage
-      ? "Manage exams across your courses"
-      : "All exams created by lecturers in your school";
+  const subtitle = canManage
+    ? "Manage exams across your courses"
+    : "All exams created by lecturers in your school";
 
   return (
     <div>
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-plus text-2xl font-bold text-navy-dark dark:text-white">
-            {isStudent ? "My Exams" : "Exams"}
+            Exams
           </h1>
-          <p className="text-sm text-slate dark:text-slate-400 mt-1">{subtitle}</p>
+          <p className="text-sm text-slate dark:text-slate-400 mt-1">
+            {subtitle}
+          </p>
         </div>
         {canManage && (
           <button
@@ -66,9 +59,9 @@ export default function ExamsPage() {
             No exams yet
           </h3>
           <p className="text-sm text-slate dark:text-slate-400">
-            {isStudent
-              ? "No exams have been scheduled for you yet."
-              : "Create your first exam to get started."}
+            {canManage
+              ? "Create your first exam to get started."
+              : "No exams have been created in your school yet."}
           </p>
         </div>
       ) : (
@@ -77,7 +70,6 @@ export default function ExamsPage() {
             <ExamCard
               key={exam.id}
               exam={exam}
-              isStudent={isStudent}
               canManage={canManage}
               onEdit={() => setEditTarget(exam)}
               onDelete={() => setDeleteTarget(exam)}

@@ -13,18 +13,15 @@ export const STATUS_STYLES: Record<string, string> = {
 
 export function ExamCard({
   exam,
-  isStudent,
   canManage,
   onEdit,
   onDelete,
 }: {
   exam: Exam;
-  isStudent: boolean;
   canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const isStaff = !isStudent;
   return (
     <div className="bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between gap-4">
@@ -58,14 +55,12 @@ export function ExamCard({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {isStaff && (
-            <Link
-              href={`/dashboard/exams/${exam.id}`}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-navy dark:text-blue-300 bg-navy/5 dark:bg-navy/20 rounded-lg hover:bg-navy/10 dark:hover:bg-navy/30 transition-colors"
-            >
-              {canManage ? "Builder" : "View"} <ChevronRight size={12} />
-            </Link>
-          )}
+          <Link
+            href={`/dashboard/exams/${exam.id}`}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-navy dark:text-blue-300 bg-navy/5 dark:bg-navy/20 rounded-lg hover:bg-navy/10 dark:hover:bg-navy/30 transition-colors"
+          >
+            {canManage ? "Builder" : "View"} <ChevronRight size={12} />
+          </Link>
           {canManage && (
             <>
               <button
@@ -81,14 +76,6 @@ export function ExamCard({
                 <Trash2 size={14} />
               </button>
             </>
-          )}
-          {isStudent && exam.status === "active" && (
-            <Link
-              href={`/exam/${exam.id}`}
-              className="flex items-center gap-1 px-4 py-1.5 text-xs font-bold bg-green text-white rounded-lg hover:bg-green-light transition-colors"
-            >
-              Start Exam <ChevronRight size={12} />
-            </Link>
           )}
         </div>
       </div>

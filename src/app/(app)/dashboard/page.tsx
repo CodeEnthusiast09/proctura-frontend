@@ -9,7 +9,7 @@ const ROLE_REDIRECT: Record<UserRole, string> = {
   super_admin: "/dashboard/schools",
   school_admin: "/dashboard/users",
   lecturer: "/dashboard/exams",
-  student: "/dashboard/exams",
+  student: "/exam",
 };
 
 export default function DashboardPage() {

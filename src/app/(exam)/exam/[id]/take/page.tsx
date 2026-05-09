@@ -250,7 +250,9 @@ export default function ExamTakePage({
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => { });
     }
-    window.location.replace(`/exam/${id}`);
+    // Land on the picker, not the same exam — the next CBT student should see
+    // their own exam list after logging in, not be stuck on the previous one.
+    window.location.replace(`/exam`);
   }
 
   async function handleAutoSubmit(reason?: string) {

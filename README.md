@@ -15,13 +15,21 @@ Web client for Proctura — a multitenancy online coding exam platform for unive
 ## Features
 
 ### Students
-- Browse and take exams they are enrolled in
+- Sign in with **email or matric number** on the exam page itself — no
+  student dashboard, no separate login URL
+- `/exam` lands students on a picker showing only their currently-active
+  enrolled exams (proctor-friendly: lab machines just point at one URL)
 - Write code in a full Monaco editor with language support
 - Run code against visible test cases before submitting
 - Auto-save answers every 30 seconds
-- Webcam recording during the exam — uploaded in the background after submission (student is not blocked)
-- Anti-cheat detection (tab switch, window blur, fullscreen exit, clipboard) — auto-submits after 3 violations
-- View graded results with per-question breakdown
+- Webcam + mic recording — permission requested on the start page so the
+  prompt never drops the student out of fullscreen mid-exam
+- Anti-cheat detection (tab switch, window blur, fullscreen exit,
+  clipboard) — auto-submits after 3 violations
+- **Auto logout on submit**: localStorage clears and the page returns to
+  the picker, ready for the next CBT student. No proctor action needed
+  between students
+- See graded results only after the lecturer releases them
 
 ### Lecturers
 - Create and manage courses
@@ -31,11 +39,35 @@ Web client for Proctura — a multitenancy online coding exam platform for unive
 - View all student submissions with scores and violation counts
 - Review submitted code per student in a read-only editor
 - Override scores per question manually with a single batch save
+- **Release Results** toggle — students don't see scores until released
+
+### School Admins
+- View-only on academic content (courses, exams, results) — they don't
+  author exams
+- Manage users: invite lecturers, invite/import students, activate /
+  deactivate accounts
+- Up to **2 active school admins per tenant**. Either can invite a
+  co-admin; last-admin protection prevents lockout
+- Settings page for editing own name + changing password
+
+### Super Admins
+- Onboard new schools (tenants) and the first school admin per tenant
+- Activate / deactivate tenants (login is blocked for any user in an
+  inactive tenant)
+- **Recovery**: invite a new school admin into any tenant if both
+  existing admins are unreachable
 
 ### All Roles
 - Login notification email on every sign-in (time, IP, location)
 - Forgot password / reset password flow
+- **Settings page** — edit own profile and change own password (super,
+  school admin, lecturer)
 - Dark mode
+
+### Deployment
+- **Installable PWA** with themed splash (`#0d1117`) — one-click install
+  on each CBT lab machine. See [DEPLOYMENT.md](./DEPLOYMENT.md) for the
+  recommended kiosk-mode setup.
 
 ## Getting Started
 
@@ -74,27 +106,44 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Project Structure
 
 ```
+public/
+├── manifest.webmanifest      — PWA manifest (name, icons, theme color)
+├── sw.js                     — minimal service worker (registers for install prompt)
+└── icons/                    — PWA icons (192, 512, maskable, apple-touch)
 src/
 ├── app/
 │   ├── (auth)/               — login, register, forgot/reset password, accept invite
-│   ├── (app)/dashboard/      — protected dashboard pages (courses, exams, results, users)
-│   └── (exam)/exam/[id]/     — exam flow (detail, take, result)
-├── components/               — globally reusable UI components
+│   ├── (app)/dashboard/      — protected dashboard pages
+│   │   ├── schools/          — super admin: tenant management + recovery invite
+│   │   ├── users/            — school admin: admin/lecturer/student tabs
+│   │   ├── courses/          — view-only for school admin, full CRUD for lecturer
+│   │   ├── exams/            — same role split as courses
+│   │   ├── results/          — staff results view
+│   │   ├── my-results/       — student results view (post-release)
+│   │   └── settings/         — profile + change password (all non-student staff)
+│   └── (exam)/exam/          — student exam flow
+│       ├── page.tsx          — picker (lab machines land here, no id needed)
+│       └── [id]/             — exam detail, take, result
+├── components/
+│   ├── auth/StudentAuth.tsx  — inline sign-in (email or matric) for /exam routes
+│   ├── ServiceWorkerRegister.tsx — PWA registration (production only)
+│   └── …                     — globally reusable UI
 ├── hooks/
 │   ├── common/               — shared hooks (useCurrentUser, etc.)
 │   └── services/             — API hooks grouped by domain
 │       ├── auth/
 │       ├── courses/
 │       ├── exams/
+│       ├── profile/          — PATCH /me + change password
 │       ├── submissions/
 │       ├── tenants/
-│       └── users/
+│       └── users/            — incl. invite-admin (co-admin) + recovery
 ├── interfaces/               — TypeScript interfaces and types
 ├── lib/                      — axios instance, query client config
 ├── services/
-│   ├── client/               — client-side API calls
+│   ├── client/               — client-side API calls (incl. profile.ts)
 │   └── server/               — server-side API calls
-└── validations/              — Yup schemas
+└── validations/              — Yup schemas (incl. profile.ts)
 ```
 
 ## Tenant Resolution
@@ -110,3 +159,9 @@ npm run build   # production build
 npm start       # start production server
 npm run lint    # run ESLint
 ```
+
+## Deploying to a CBT lab
+
+Proctura ships as an installable PWA. For the recommended exam-day setup —
+PWA install per machine, kiosk-mode launch at boot, camera permissions,
+network requirements, and troubleshooting — see [DEPLOYMENT.md](./DEPLOYMENT.md).

@@ -11,6 +11,7 @@ import type { ApiResponse, AuthResponse } from "@/interfaces";
 
 export function useAcceptInvite(token: string) {
   const [activated, setActivated] = useState(false);
+  const [activatedRole, setActivatedRole] = useState<string | null>(null);
 
   const { mutate, isPending } = useMutation<
     ApiResponse<AuthResponse>,
@@ -27,6 +28,7 @@ export function useAcceptInvite(token: string) {
         if (user.subdomain) {
           storeInLocalStorage("subdomain", user.subdomain);
         }
+        setActivatedRole(user.role);
       }
       toast.success("Account activated!");
       setActivated(true);
@@ -36,5 +38,5 @@ export function useAcceptInvite(token: string) {
     },
   });
 
-  return { mutate, isPending, activated };
+  return { mutate, isPending, activated, activatedRole };
 }

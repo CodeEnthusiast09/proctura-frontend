@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Building2, Plus, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Building2, Plus, Loader2, Search } from "lucide-react";
 import {
   useTenants,
   useBulkUpdateTenantActive,
@@ -20,9 +20,26 @@ export default function SchoolsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Tenant | null>(null);
   const [recoverTarget, setRecoverTarget] = useState<Tenant | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
   const { data, isLoading } = useTenants();
-  const tenants: Tenant[] = data?.data?.data ?? [];
+  const allTenants: Tenant[] = data?.data?.data ?? [];
+
+  const tenants = useMemo(() => {
+    let list = allTenants;
+    if (statusFilter === "active") list = list.filter((t) => t.isActive);
+    if (statusFilter === "inactive") list = list.filter((t) => !t.isActive);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.subdomain.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [allTenants, search, statusFilter]);
 
   const { mutate: bulkUpdate, isPending: isBulkUpdating } =
     useBulkUpdateTenantActive(() => setSelectedIds(new Set()));
@@ -64,6 +81,37 @@ export default function SchoolsPage() {
         </button>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate dark:text-slate-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            placeholder="Search by name or subdomain…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-navy-dark dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-navy dark:focus:border-blue-500 transition-colors"
+          />
+        </div>
+        <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-sm shrink-0">
+          {(["all", "active", "inactive"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-2.5 font-medium capitalize transition-colors
+                ${statusFilter === s
+                  ? "bg-navy dark:bg-blue-600 text-white"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <BulkActionBar
         selectedCount={selectedIds.size}
         noun="school"
@@ -87,10 +135,12 @@ export default function SchoolsPage() {
             <Building2 size={24} className="text-slate dark:text-slate-400" />
           </div>
           <h3 className="font-plus font-semibold text-navy-dark dark:text-white mb-2">
-            No schools onboarded yet
+            {allTenants.length === 0 ? "No schools onboarded yet" : "No schools match your filter"}
           </h3>
           <p className="text-sm text-slate dark:text-slate-400">
-            Create a school workspace to get started.
+            {allTenants.length === 0
+              ? "Create a school workspace to get started."
+              : "Try adjusting your search or status filter."}
           </p>
         </div>
       ) : (

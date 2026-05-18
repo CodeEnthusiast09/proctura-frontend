@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { InferType } from "yup";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { AuthCard, FormField } from "@/components/auth";
 import { useAcceptInvite } from "@/hooks/services/auth";
@@ -28,7 +29,8 @@ function AcceptInviteForm() {
   const token = searchParams.get("token") ?? "";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const { mutate, isPending, activated } = useAcceptInvite(token);
+  const { mutate, isPending, activated, activatedRole } =
+    useAcceptInvite(token);
 
   const {
     register,
@@ -53,6 +55,15 @@ function AcceptInviteForm() {
   }
 
   if (activated) {
+    const roleSubtitle: Record<string, string> = {
+      student:
+        "On exam day, your lecturer or proctor will tell you where to sign in to take your exam.",
+      lecturer:
+        "You can now sign in and start creating courses and exams for your students.",
+      school_admin:
+        "You can now sign in to manage your school, invite lecturers, and onboard students.",
+    };
+
     return (
       <AuthCard title="You're all set!" subtitle="">
         <div className="text-center py-4">
@@ -62,10 +73,16 @@ function AcceptInviteForm() {
           <p className="text-sm text-slate-600 dark:text-slate-300 mb-2">
             Your account has been activated successfully.
           </p>
-          <p className="text-sm text-slate dark:text-slate-400">
-            On exam day, your lecturer or proctor will tell you where to sign
-            in to take your exam.
+          <p className="text-sm text-slate dark:text-slate-400 mb-6">
+            {(activatedRole && roleSubtitle[activatedRole]) ??
+              "You can now sign in to your account."}
           </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center w-full bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-5 py-3 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
+          >
+            Go to Sign In
+          </Link>
         </div>
       </AuthCard>
     );

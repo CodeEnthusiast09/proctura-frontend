@@ -56,8 +56,7 @@ function AcceptInviteForm() {
 
   if (activated) {
     const roleSubtitle: Record<string, string> = {
-      student:
-        "On exam day, your lecturer or proctor will tell you where to sign in to take your exam.",
+      student: "You can close this window now. See you on exam day!",
       lecturer:
         "You can now sign in and start creating courses and exams for your students.",
       school_admin:
@@ -77,12 +76,14 @@ function AcceptInviteForm() {
             {(activatedRole && roleSubtitle[activatedRole]) ??
               "You can now sign in to your account."}
           </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center w-full bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-5 py-3 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
-          >
-            Go to Sign In
-          </Link>
+          {activatedRole !== "student" && (
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center w-full bg-navy dark:bg-blue-600 text-white font-semibold text-sm px-5 py-3 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors"
+            >
+              Go to Sign In
+            </Link>
+          )}
         </div>
       </AuthCard>
     );

@@ -1,3 +1,11 @@
+"use client";
+
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
+
 const STEPS = [
   {
     number: "01",
@@ -38,8 +46,44 @@ const STEPS = [
 ];
 
 export function HowItWorks() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const scope = sectionRef.current;
+      if (!scope) return;
+
+      const cards = scope.querySelectorAll<HTMLElement>(".step-card");
+      const connectors = scope.querySelectorAll<HTMLElement>(".step-connector");
+
+      gsap.set(connectors, { y: -2, scaleX: 0, transformOrigin: "left center" });
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: { trigger: scope, start: "top 65%" },
+      });
+
+      cards.forEach((card, i) => {
+        tl.from(card, { y: 24, opacity: 0, duration: 0.5 }, i === 0 ? undefined : "-=0.1");
+        if (connectors[i]) {
+          tl.to(connectors[i], { scaleX: 1, duration: 0.4, ease: "power2.inOut" }, "-=0.1");
+        }
+      });
+
+      return () => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      };
+    });
+
+    return () => mm.revert();
+  }, []);
+
   return (
     <section
+      ref={sectionRef}
       id="how-it-works"
       className="py-24 bg-slate-light dark:bg-[#070d1a]"
     >
@@ -61,9 +105,12 @@ export function HowItWorks() {
           {STEPS.map((step, idx) => (
             <div key={step.number} className="relative">
               {idx < STEPS.length - 1 && (
-                <div className="hidden lg:block absolute top-8 left-full w-full h-px border-t-2 border-dashed border-slate-200 dark:border-slate-700 z-0 -translate-y-0.5" />
+                <div
+                  className="step-connector hidden lg:block absolute top-8 left-full w-full h-px border-t-2 border-dashed border-slate-200 dark:border-slate-700 z-0"
+                  style={{ transform: "translateY(-2px)" }}
+                />
               )}
-              <div className="relative bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-8 shadow-sm h-full">
+              <div className="step-card relative bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-8 shadow-sm h-full">
                 <div
                   className={`${step.color} text-white font-plus font-bold text-sm w-10 h-10 rounded-xl flex items-center justify-center mb-6`}
                 >

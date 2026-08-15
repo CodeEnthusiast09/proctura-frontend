@@ -1,3 +1,11 @@
+"use client";
+
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
+
 const PAIN_POINTS = [
   {
     who: "Students",
@@ -26,8 +34,48 @@ const PAIN_POINTS = [
 ];
 
 export function Problem() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const scope = sectionRef.current;
+      if (!scope) return;
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: { trigger: scope, start: "top 60%" },
+      });
+
+      tl.from(scope.querySelectorAll(".problem-card"), {
+        y: 32,
+        opacity: 0,
+        duration: 0.7,
+        stagger: 0.25,
+      })
+        .from(
+          scope.querySelectorAll(".problem-point"),
+          { x: -14, opacity: 0, duration: 0.4, stagger: 0.06 },
+          "-=0.2",
+        )
+        .from(
+          scope.querySelectorAll(".problem-solution"),
+          { y: 24, opacity: 0, duration: 0.6 },
+          "+=0.1",
+        );
+
+      return () => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      };
+    });
+
+    return () => mm.revert();
+  }, []);
+
   return (
-    <section className="py-24 bg-white dark:bg-[#0a0f1e]">
+    <section ref={sectionRef} className="py-24 bg-white dark:bg-[#0a0f1e]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto text-center mb-16">
           <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate uppercase tracking-widest mb-4">
@@ -47,7 +95,7 @@ export function Problem() {
           {PAIN_POINTS.map((group) => (
             <div
               key={group.who}
-              className={`${group.bg} border ${group.border} rounded-2xl p-8`}
+              className={`problem-card ${group.bg} border ${group.border} rounded-2xl p-8`}
             >
               <h3 className={`font-plus text-lg font-bold mb-5 ${group.color}`}>
                 For {group.who}
@@ -56,7 +104,7 @@ export function Problem() {
                 {group.points.map((point) => (
                   <li
                     key={point}
-                    className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300"
+                    className="problem-point flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300"
                   >
                     <span className="mt-0.5 w-5 h-5 rounded-full bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 text-red-400 flex items-center justify-center flex-shrink-0 text-xs">
                       ✕
@@ -69,7 +117,7 @@ export function Problem() {
           ))}
         </div>
 
-        <div className="bg-navy dark:bg-slate-800 rounded-2xl p-8 sm:p-12 text-center">
+        <div className="problem-solution bg-navy dark:bg-slate-800 rounded-2xl p-8 sm:p-12 text-center">
           <p className="text-white/60 text-sm font-semibold uppercase tracking-widest mb-3">
             The Solution
           </p>

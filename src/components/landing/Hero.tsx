@@ -1,8 +1,85 @@
+"use client";
+
 import { ArrowRight, Play } from "lucide-react";
+import { gsap } from "gsap";
+import { SplitText } from "gsap/SplitText";
+import { useEffect, useRef } from "react";
+
+gsap.registerPlugin(SplitText);
 
 export function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const scope = sectionRef.current;
+      const heading = headingRef.current;
+      if (!scope || !heading) return;
+
+      const split = new SplitText(heading, { type: "chars", charsClass: "hero-char" });
+      gsap.set(split.chars, { opacity: 0, y: "0.5em" });
+
+      const underline = heading.querySelector<SVGPathElement>(".hero-underline");
+      const underlineLength = underline?.getTotalLength() ?? 0;
+      if (underline) {
+        gsap.set(underline, {
+          strokeDasharray: underlineLength,
+          strokeDashoffset: underlineLength,
+        });
+      }
+
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      tl.from(scope.querySelectorAll(".hero-badge"), { y: 16, opacity: 0, duration: 0.5 })
+        .to(
+          split.chars,
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.015, ease: "power2.out" },
+          "-=0.25",
+        );
+
+      if (underline) {
+        tl.to(underline, { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, "-=0.1");
+      }
+
+      tl.from(scope.querySelectorAll(".hero-copy"), { y: 16, opacity: 0, duration: 0.5 }, "-=0.3")
+        .from(
+          scope.querySelectorAll(".hero-cta"),
+          { y: 16, opacity: 0, duration: 0.4, stagger: 0.1 },
+          "-=0.3",
+        )
+        .from(
+          scope.querySelectorAll(".hero-social"),
+          { y: 16, opacity: 0, duration: 0.4 },
+          "-=0.2",
+        )
+        .from(
+          scope.querySelectorAll(".hero-mockup"),
+          { scale: 0.94, opacity: 0, duration: 0.7 },
+          "-=0.5",
+        )
+        .from(
+          scope.querySelectorAll(".mockup-line"),
+          { opacity: 0, x: -12, duration: 0.35, stagger: 0.15 },
+          "-=0.25",
+        );
+
+      return () => {
+        tl.kill();
+        split.revert();
+      };
+    });
+
+    return () => mm.revert();
+  }, []);
+
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-slate-light dark:bg-[#070d1a]">
+    <section
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center overflow-hidden bg-slate-light dark:bg-[#070d1a]"
+    >
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-navy/5 dark:bg-navy/20 blur-3xl" />
@@ -21,12 +98,15 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left — copy */}
           <div>
-            <div className="inline-flex items-center gap-2 bg-green-pale dark:bg-green/10 border border-green/20 text-green text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+            <div className="hero-badge inline-flex items-center gap-2 bg-green-pale dark:bg-green/10 border border-green/20 text-green text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse" />
               Built for Nigerian Universities
             </div>
 
-            <h1 className="font-plus text-4xl sm:text-5xl lg:text-6xl font-bold text-navy-dark dark:text-white leading-[1.1] tracking-tight mb-6">
+            <h1
+              ref={headingRef}
+              className="hero-heading font-plus text-4xl sm:text-5xl lg:text-6xl font-bold text-navy-dark dark:text-white leading-[1.1] tracking-tight mb-6"
+            >
               The End of Writing{" "}
               <span className="relative inline-block">
                 <span className="relative z-10 text-navy dark:text-blue-300">
@@ -40,6 +120,7 @@ export function Hero() {
                   aria-hidden="true"
                 >
                   <path
+                    className="hero-underline"
                     d="M2 9C50 4 150 1 298 9"
                     stroke="#16a34a"
                     strokeWidth="3"
@@ -49,7 +130,7 @@ export function Hero() {
               </span>
             </h1>
 
-            <p className="text-lg text-slate dark:text-slate-300 leading-relaxed mb-8 max-w-lg">
+            <p className="hero-copy text-lg text-slate dark:text-slate-300 leading-relaxed mb-8 max-w-lg">
               Proctura gives Nigerian universities a real online coding exam
               platform — so students can write, run, and submit actual code
               instead of filling exam sheets by hand.
@@ -58,14 +139,14 @@ export function Hero() {
             <div className="flex flex-col sm:flex-row gap-3">
               <a
                 href="#contact"
-                className="inline-flex items-center justify-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold px-6 py-3.5 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors text-sm"
+                className="hero-cta inline-flex items-center justify-center gap-2 bg-navy dark:bg-blue-600 text-white font-semibold px-6 py-3.5 rounded-lg hover:bg-navy-light dark:hover:bg-blue-500 transition-colors text-sm"
               >
                 Get Your School Onboarded
                 <ArrowRight size={16} />
               </a>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-navy-dark dark:text-white font-semibold px-6 py-3.5 rounded-lg hover:border-navy/30 dark:hover:border-slate-500 transition-colors text-sm"
+                className="hero-cta inline-flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-navy-dark dark:text-white font-semibold px-6 py-3.5 rounded-lg hover:border-navy/30 dark:hover:border-slate-500 transition-colors text-sm"
               >
                 <Play
                   size={14}
@@ -76,7 +157,7 @@ export function Hero() {
             </div>
 
             {/* Social proof */}
-            <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-slate dark:text-slate-400">
+            <div className="hero-social mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-slate dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {["#1e3a5f", "#16a34a", "#2d5a9e", "#0f172a"].map(
@@ -99,7 +180,7 @@ export function Hero() {
           </div>
 
           {/* Right — exam interface mockup */}
-          <div className="relative hidden lg:block">
+          <div className="hero-mockup relative hidden lg:block">
             <ExamMockup />
           </div>
         </div>
@@ -122,7 +203,7 @@ function ExamMockup() {
             <div className="w-3 h-3 rounded-full bg-green-400" />
           </div>
           <div className="flex-1 bg-white dark:bg-slate-700 rounded-md px-3 py-1 text-xs text-slate-400 dark:text-slate-400 font-mono">
-            unilag.proctura.com/exams/midterm
+            funaab.proctura.com/exams/midterm
           </div>
         </div>
 
@@ -178,17 +259,17 @@ function ExamMockup() {
               </span>
             </div>
             <div className="p-4 font-mono text-xs leading-relaxed">
-              <div>
+              <div className="mockup-line">
                 <span className="text-blue-400">def</span>{" "}
                 <span className="text-yellow-300">reverse_string</span>
                 <span className="text-white">(s):</span>
               </div>
-              <div className="pl-4">
+              <div className="mockup-line pl-4">
                 <span className="text-blue-400">return</span>{" "}
                 <span className="text-white">s</span>
                 <span className="text-orange-400">[::-1]</span>
               </div>
-              <div className="mt-2">
+              <div className="mockup-line mt-2">
                 <span className="text-yellow-300">print</span>
                 <span className="text-white">(</span>
                 <span className="text-yellow-300">reverse_string</span>
@@ -196,7 +277,7 @@ function ExamMockup() {
                 <span className="text-yellow-300">input</span>
                 <span className="text-white">()))</span>
               </div>
-              <div className="mt-3 flex items-center gap-1">
+              <div className="mockup-line mt-3 flex items-center gap-1">
                 <span className="w-0.5 h-4 bg-white/70 animate-pulse inline-block" />
               </div>
             </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Code2,
   Shield,
@@ -8,6 +10,11 @@ import {
   Timer,
   BarChart3,
 } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const FEATURES = [
   {
@@ -77,8 +84,42 @@ const FEATURES = [
 ];
 
 export function Features() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const scope = sectionRef.current;
+      if (!scope) return;
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: { trigger: scope, start: "top 60%" },
+      });
+
+      tl.from(scope.querySelectorAll(".feature-card"), {
+        y: 24,
+        opacity: 0,
+        duration: 0.45,
+        stagger: 0.06,
+      }).from(
+        scope.querySelectorAll(".feature-lang"),
+        { scale: 0.8, opacity: 0, duration: 0.3, stagger: 0.06 },
+        "-=0.2",
+      );
+
+      return () => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      };
+    });
+
+    return () => mm.revert();
+  }, []);
+
   return (
-    <section id="features" className="py-24 bg-white dark:bg-[#0a0f1e]">
+    <section ref={sectionRef} id="features" className="py-24 bg-white dark:bg-[#0a0f1e]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="max-w-2xl mx-auto text-center mb-16">
@@ -101,7 +142,7 @@ export function Features() {
             return (
               <div
                 key={feature.title}
-                className="group bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-6 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200"
+                className="feature-card group bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-6 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-[box-shadow,border-color] duration-200"
               >
                 <div
                   className={`${feature.bg} dark:bg-white/5 ${feature.color} w-11 h-11 rounded-xl flex items-center justify-center mb-4`}
@@ -139,7 +180,7 @@ export function Features() {
             ].map((lang) => (
               <div
                 key={lang.id}
-                className="bg-white/10 border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg font-mono"
+                className="feature-lang bg-white/10 border border-white/10 text-white text-sm font-medium px-4 py-2 rounded-lg font-mono"
               >
                 {lang.name}
               </div>

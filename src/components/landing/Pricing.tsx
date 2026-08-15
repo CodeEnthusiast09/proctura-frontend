@@ -1,4 +1,11 @@
+"use client";
+
 import { Check, ArrowRight } from "lucide-react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef } from "react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const PLANS = [
   {
@@ -42,8 +49,42 @@ const PLANS = [
 ];
 
 export function Pricing() {
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      const scope = sectionRef.current;
+      if (!scope) return;
+
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        scrollTrigger: { trigger: scope, start: "top 60%" },
+      });
+
+      tl.from(scope.querySelectorAll(".pricing-card"), {
+        y: 28,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.15,
+      }).from(
+        scope.querySelectorAll(".pricing-badge"),
+        { scale: 0, duration: 0.35, ease: "back.out(2.5)" },
+        "-=0.15",
+      );
+
+      return () => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      };
+    });
+
+    return () => mm.revert();
+  }, []);
+
   return (
-    <section id="pricing" className="py-24 bg-slate-light dark:bg-[#070d1a]">
+    <section ref={sectionRef} id="pricing" className="py-24 bg-slate-light dark:bg-[#070d1a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="max-w-2xl mx-auto text-center mb-16">
@@ -64,14 +105,14 @@ export function Pricing() {
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`relative rounded-2xl p-8 border ${plan.featured
+              className={`pricing-card relative rounded-2xl p-8 border ${plan.featured
                   ? "bg-navy border-navy shadow-2xl"
                   : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 shadow-sm"
                 }`}
             >
               {plan.featured && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="bg-green text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                  <span className="pricing-badge inline-block bg-green text-white text-xs font-bold px-4 py-1.5 rounded-full">
                     Most Popular
                   </span>
                 </div>

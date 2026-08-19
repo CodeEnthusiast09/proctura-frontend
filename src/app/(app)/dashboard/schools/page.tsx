@@ -24,7 +24,9 @@ export default function SchoolsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
   const { data, isLoading } = useTenants();
-  const allTenants: Tenant[] = data?.data?.data ?? [];
+  // ?? [] built a new array every render, so the useMemo below saw changed
+  // deps every time and never actually memoised.
+  const allTenants: Tenant[] = useMemo(() => data?.data?.data ?? [], [data]);
 
   const tenants = useMemo(() => {
     let list = allTenants;

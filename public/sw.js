@@ -6,7 +6,7 @@
 
 const VERSION = "proctura-v1";
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   // Take over immediately on first install.
   self.skipWaiting();
 });

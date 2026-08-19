@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 export function useAntiCheat({
   submissionId,
@@ -11,8 +11,14 @@ export function useAntiCheat({
   requestingCameraRef: React.RefObject<boolean>;
   onViolation: (reason: string) => void;
 }) {
-  const onViolationRef = useRef(onViolation);
-  onViolationRef.current = onViolation;
+  // This used to be a ref reassigned during render, so the listeners below could
+  // call the newest onViolation without re-subscribing on every parent render.
+  // React flags that write because a ref mutated during render can read stale.
+  // useEffectEvent is the supported form of the same idea: it always calls the
+  // latest onViolation and is deliberately not an effect dependency.
+  const reportViolation = useEffectEvent((reason: string) => {
+    onViolation(reason);
+  });
 
   const antiCheatEnabled = process.env.NEXT_PUBLIC_ANTI_CHEAT !== "false";
 
@@ -20,11 +26,11 @@ export function useAntiCheat({
   useEffect(() => {
     if (!antiCheatEnabled) return;
     function handleVisibilityChange() {
-      if (document.hidden) onViolationRef.current("tab_switch");
+      if (document.hidden) reportViolation("tab_switch");
     }
     function handleWindowBlur() {
       if (!document.hidden && !requestingCameraRef.current)
-        onViolationRef.current("window_switch");
+        reportViolation("window_switch");
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("blur", handleWindowBlur);
@@ -32,34 +38,31 @@ export function useAntiCheat({
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleWindowBlur);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId, antiCheatEnabled]);
+  }, [submissionId, antiCheatEnabled, requestingCameraRef]);
 
   // ── Anti-cheat: fullscreen exit ───────────────────────────────────────────
   useEffect(() => {
     if (!antiCheatEnabled) return;
     function handleFullscreenChange() {
       if (!document.fullscreenElement) {
-        if (!requestingCameraRef.current)
-          onViolationRef.current("fullscreen_exit");
-        document.documentElement.requestFullscreen?.().catch(() => { });
+        if (!requestingCameraRef.current) reportViolation("fullscreen_exit");
+        document.documentElement.requestFullscreen?.().catch(() => {});
       }
     }
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId, antiCheatEnabled]);
+  }, [submissionId, antiCheatEnabled, requestingCameraRef]);
 
   // ── Anti-cheat: clipboard ──────────────────────────────────────────────────
   useEffect(() => {
     if (!antiCheatEnabled) return;
     function handleCopy() {
-      onViolationRef.current("copy");
+      reportViolation("copy");
     }
     function handlePaste() {
-      onViolationRef.current("paste");
+      reportViolation("paste");
     }
     document.addEventListener("copy", handleCopy);
     document.addEventListener("paste", handlePaste);
@@ -67,6 +70,5 @@ export function useAntiCheat({
       document.removeEventListener("copy", handleCopy);
       document.removeEventListener("paste", handlePaste);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionId, antiCheatEnabled]);
 }

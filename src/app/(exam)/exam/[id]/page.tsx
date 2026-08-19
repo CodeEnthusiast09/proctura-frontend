@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   Clock,
@@ -20,6 +20,10 @@ function submissionKey(examId: string) {
   return `exam_submission_${examId}`;
 }
 
+// localStorage only changes here via this component's own write, which always
+// coincides with the server query resolving, so there is nothing to subscribe to.
+const noSubscription = () => () => {};
+
 type CameraStatus = "checking" | "ready" | "denied";
 
 export default function ExamStartPage({
@@ -37,7 +41,6 @@ export default function ExamStartPage({
     useAvailableExams(true);
   const isEnrolled = (availableData?.data?.data ?? []).some((e) => e.id === id);
 
-  const [hasResumable, setHasResumable] = useState(false);
 
   // ── Pre-request camera permission ────────────────────────────────────────────
   // Triggering getUserMedia here means the browser prompt fires on this page,
@@ -46,12 +49,13 @@ export default function ExamStartPage({
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("checking");
   useEffect(() => {
     let cancelled = false;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraStatus("denied");
-      return;
-    }
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
+    // Every branch resolves asynchronously, including the unsupported one, so
+    // no state is written during the effect body itself.
+    Promise.resolve()
+      .then(() => {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported");
+        return navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      })
       .then((stream) => {
         // Stop tracks immediately — we only wanted the permission grant.
         stream.getTracks().forEach((t) => t.stop());
@@ -70,10 +74,17 @@ export default function ExamStartPage({
   // browser), or an in_progress submission on the server (different browser /
   // cleared storage). The server path is what was causing "you have already
   // started this exam" toasts to spam — clicking Start kept hitting the API.
-  useEffect(() => {
-    const stored = retrieveFromLocalStorage<Submission>(submissionKey(id));
-    if (stored?.status === "in_progress") setHasResumable(true);
-  }, [id]);
+  // localStorage is an external store. Reading it during render would not match
+  // the server render, and reading it in an effect means a setState cascade.
+  // useSyncExternalStore serves the server snapshot during hydration and the
+  // real value afterwards, with no effect and no duplicated state.
+  const storedInProgress = useSyncExternalStore(
+    noSubscription,
+    () =>
+      retrieveFromLocalStorage<Submission>(submissionKey(id))?.status ===
+      "in_progress",
+    () => false,
+  );
 
   const { data: mySubmissionData, isLoading: isCheckingSubmission } =
     useMySubmission(id);
@@ -81,6 +92,12 @@ export default function ExamStartPage({
   const alreadySubmitted =
     !!existingSubmission && existingSubmission.status !== "in_progress";
 
+  // Derived, not stored. Both paths feed this one expression.
+  const hasResumable =
+    storedInProgress || existingSubmission?.status === "in_progress";
+
+  // Caching the server's submission locally is a real side effect, so it stays
+  // in an effect. The resumable flag above is derived, so nothing sets state.
   useEffect(() => {
     if (isCheckingSubmission || !existingSubmission) return;
     if (existingSubmission.status === "in_progress") {
@@ -88,7 +105,6 @@ export default function ExamStartPage({
         submissionKey(id),
         JSON.stringify(existingSubmission),
       );
-      setHasResumable(true);
     }
   }, [isCheckingSubmission, existingSubmission, id]);
 

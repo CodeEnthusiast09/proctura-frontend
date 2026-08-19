@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { InferType } from "yup";
 import { Loader2 } from "lucide-react";
@@ -27,7 +27,7 @@ export function CreateExamModal({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<CreateFormData>({ resolver: yupResolver(examSchema) });
 
@@ -36,7 +36,12 @@ export function CreateExamModal({
     onClose();
   });
 
-  const selectedLangId = watch("languageId");
+  // useWatch rather than watch(): watch() returns a fresh function from
+  // useForm() that cannot be memoised, so React Compiler skips optimising the
+  // whole component. useWatch subscribes to just this field and re-renders
+  // only on its changes. There are no defaultValues and the select already
+  // handles undefined via ?? "", so the value is identical.
+  const selectedLangId = useWatch({ control, name: "languageId" });
 
   function onSubmit(data: CreateFormData) {
     mutate({

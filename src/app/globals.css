@@ -53,3 +53,31 @@ html {
 .dark ::-webkit-scrollbar-thumb {
   background: #334155;
 }
+
+/* The hero intro is GSAP-driven, and GSAP cannot hide anything until React has
+   hydrated. Without this the server HTML paints the finished hero, then
+   hydration wipes it and replays the intro, which reads as the page loading
+   twice. Shipping the pre-animation state here makes the first paint the
+   animation's opening frame instead of its last.
+
+   Guarded by the motion query to match the gsap.matchMedia() guard in
+   Hero.tsx: when the intro never runs, nothing is hidden. The underline is a
+   stroke draw, so it is hidden with a dash offset rather than opacity; 400
+   comfortably exceeds the path length and GSAP overwrites it with the exact
+   getTotalLength() value on mount. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-badge,
+  .hero-heading,
+  .hero-copy,
+  .hero-cta,
+  .hero-social,
+  .hero-mockup,
+  .mockup-line {
+    opacity: 0;
+  }
+
+  .hero-underline {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+  }
+}

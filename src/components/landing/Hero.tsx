@@ -21,6 +21,7 @@ export function Hero() {
 
       const split = new SplitText(heading, { type: "chars", charsClass: "hero-char" });
       gsap.set(split.chars, { opacity: 0, y: "0.5em" });
+      gsap.set(heading, { opacity: 1 });
 
       const underline = heading.querySelector<SVGPathElement>(".hero-underline");
       const underlineLength = underline?.getTotalLength() ?? 0;
@@ -33,7 +34,11 @@ export function Hero() {
 
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-      tl.from(scope.querySelectorAll(".hero-badge"), { y: 16, opacity: 0, duration: 0.5 })
+      tl.fromTo(
+        scope.querySelectorAll(".hero-badge"),
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5 },
+      )
         .to(
           split.chars,
           { opacity: 1, y: 0, duration: 0.5, stagger: 0.015, ease: "power2.out" },
@@ -44,25 +49,34 @@ export function Hero() {
         tl.to(underline, { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut" }, "-=0.1");
       }
 
-      tl.from(scope.querySelectorAll(".hero-copy"), { y: 16, opacity: 0, duration: 0.5 }, "-=0.3")
-        .from(
+      tl.fromTo(
+        scope.querySelectorAll(".hero-copy"),
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5 },
+        "-=0.3",
+      )
+        .fromTo(
           scope.querySelectorAll(".hero-cta"),
-          { y: 16, opacity: 0, duration: 0.4, stagger: 0.1 },
+          { y: 16, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, stagger: 0.1 },
           "-=0.3",
         )
-        .from(
+        .fromTo(
           scope.querySelectorAll(".hero-social"),
-          { y: 16, opacity: 0, duration: 0.4 },
+          { y: 16, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4 },
           "-=0.2",
         )
-        .from(
+        .fromTo(
           scope.querySelectorAll(".hero-mockup"),
-          { scale: 0.94, opacity: 0, duration: 0.7 },
+          { scale: 0.94, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.7 },
           "-=0.5",
         )
-        .from(
+        .fromTo(
           scope.querySelectorAll(".mockup-line"),
-          { opacity: 0, x: -12, duration: 0.35, stagger: 0.15 },
+          { opacity: 0, x: -12 },
+          { opacity: 1, x: 0, duration: 0.35, stagger: 0.15 },
           "-=0.25",
         );
 
@@ -80,6 +94,16 @@ export function Hero() {
       ref={sectionRef}
       className="relative min-h-screen flex items-center overflow-hidden bg-slate-light dark:bg-[#070d1a]"
     >
+      {/* The pre-animation state above is CSS, so without JS the intro never
+          runs and the hero would stay blank. Hand it back. */}
+      <noscript>
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              ".hero-badge,.hero-heading,.hero-copy,.hero-cta,.hero-social,.hero-mockup,.mockup-line{opacity:1}.hero-underline{stroke-dasharray:none;stroke-dashoffset:0}",
+          }}
+        />
+      </noscript>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-navy/5 dark:bg-navy/20 blur-3xl" />

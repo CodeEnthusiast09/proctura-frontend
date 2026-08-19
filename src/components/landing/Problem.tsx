@@ -48,20 +48,22 @@ export function Problem() {
         scrollTrigger: { trigger: scope, start: "top 60%" },
       });
 
-      tl.from(scope.querySelectorAll(".problem-card"), {
-        y: 32,
-        opacity: 0,
-        duration: 0.7,
-        stagger: 0.25,
-      })
+      tl.fromTo(
+        scope.querySelectorAll(".problem-card"),
+        { y: 32, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.7, stagger: 0.25 },
+      )
+        // .problem-point sits inside .problem-card, which CSS already hides at
+        // first paint, so this one stays a from().
         .from(
           scope.querySelectorAll(".problem-point"),
           { x: -14, opacity: 0, duration: 0.4, stagger: 0.06 },
           "-=0.2",
         )
-        .from(
+        .fromTo(
           scope.querySelectorAll(".problem-solution"),
-          { y: 24, opacity: 0, duration: 0.6 },
+          { y: 24, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.6 },
           "+=0.1",
         );
 

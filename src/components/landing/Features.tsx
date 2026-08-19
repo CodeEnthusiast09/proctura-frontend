@@ -98,14 +98,14 @@ export function Features() {
         scrollTrigger: { trigger: scope, start: "top 60%" },
       });
 
-      tl.from(scope.querySelectorAll(".feature-card"), {
-        y: 24,
-        opacity: 0,
-        duration: 0.45,
-        stagger: 0.06,
-      }).from(
+      tl.fromTo(
+        scope.querySelectorAll(".feature-card"),
+        { y: 24, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.45, stagger: 0.06 },
+      ).fromTo(
         scope.querySelectorAll(".feature-lang"),
-        { scale: 0.8, opacity: 0, duration: 0.3, stagger: 0.06 },
+        { scale: 0.8, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3, stagger: 0.06 },
         "-=0.2",
       );
 

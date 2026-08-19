@@ -22,16 +22,27 @@ export function CTA() {
         scrollTrigger: { trigger: scope, start: "top 60%" },
       });
 
-      tl.from(scope.querySelectorAll(".cta-heading"), { y: 20, opacity: 0, duration: 0.5 })
-        .from(scope.querySelectorAll(".cta-copy"), { y: 16, opacity: 0, duration: 0.5 }, "-=0.3")
-        .from(
-          scope.querySelectorAll(".cta-button"),
-          { y: 16, opacity: 0, duration: 0.4, stagger: 0.1 },
+      tl.fromTo(
+        scope.querySelectorAll(".cta-heading"),
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5 },
+      )
+        .fromTo(
+          scope.querySelectorAll(".cta-copy"),
+          { y: 16, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5 },
           "-=0.3",
         )
-        .from(
+        .fromTo(
+          scope.querySelectorAll(".cta-button"),
+          { y: 16, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, stagger: 0.1 },
+          "-=0.3",
+        )
+        .fromTo(
           scope.querySelectorAll(".cta-stat"),
-          { y: 12, opacity: 0, duration: 0.35, stagger: 0.1 },
+          { y: 12, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.35, stagger: 0.1 },
           "-=0.2",
         );
 

@@ -66,7 +66,12 @@ export function HowItWorks() {
       });
 
       cards.forEach((card, i) => {
-        tl.from(card, { y: 24, opacity: 0, duration: 0.5 }, i === 0 ? undefined : "-=0.1");
+        tl.fromTo(
+          card,
+          { y: 24, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5 },
+          i === 0 ? undefined : "-=0.1",
+        );
         if (connectors[i]) {
           tl.to(connectors[i], { scaleX: 1, duration: 0.4, ease: "power2.inOut" }, "-=0.1");
         }
@@ -107,7 +112,6 @@ export function HowItWorks() {
               {idx < STEPS.length - 1 && (
                 <div
                   className="step-connector hidden lg:block absolute top-8 left-full w-full h-px border-t-2 border-dashed border-slate-200 dark:border-slate-700 z-0"
-                  style={{ transform: "translateY(-2px)" }}
                 />
               )}
               <div className="step-card relative bg-white dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 rounded-2xl p-8 shadow-sm h-full">

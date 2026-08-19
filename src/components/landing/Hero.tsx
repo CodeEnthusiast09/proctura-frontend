@@ -94,16 +94,6 @@ export function Hero() {
       ref={sectionRef}
       className="relative min-h-screen flex items-center overflow-hidden bg-slate-light dark:bg-[#070d1a]"
     >
-      {/* The pre-animation state above is CSS, so without JS the intro never
-          runs and the hero would stay blank. Hand it back. */}
-      <noscript>
-        <style
-          dangerouslySetInnerHTML={{
-            __html:
-              ".hero-badge,.hero-heading,.hero-copy,.hero-cta,.hero-social,.hero-mockup,.mockup-line{opacity:1}.hero-underline{stroke-dasharray:none;stroke-dashoffset:0}",
-          }}
-        />
-      </noscript>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-navy/5 dark:bg-navy/20 blur-3xl" />

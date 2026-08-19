@@ -54,17 +54,28 @@ html {
   background: #334155;
 }
 
-/* The hero intro is GSAP-driven, and GSAP cannot hide anything until React has
-   hydrated. Without this the server HTML paints the finished hero, then
-   hydration wipes it and replays the intro, which reads as the page loading
-   twice. Shipping the pre-animation state here makes the first paint the
-   animation's opening frame instead of its last.
+/* Every landing animation is GSAP-driven, and GSAP cannot hide anything until
+   React has hydrated. Without this the server HTML paints each section in its
+   finished state, then hydration wipes it and replays, which reads as the page
+   loading twice. Shipping the pre-animation state here makes the first paint
+   the animation's opening frame instead of its last.
 
-   Guarded by the motion query to match the gsap.matchMedia() guard in
-   Hero.tsx: when the intro never runs, nothing is hidden. The underline is a
-   stroke draw, so it is hidden with a dash offset rather than opacity; 400
-   comfortably exceeds the path length and GSAP overwrites it with the exact
-   getTotalLength() value on mount. */
+   Guarded by the motion query to match the gsap.matchMedia() guard in every
+   component: when the intros never run, nothing is hidden. The undo for
+   JS-disabled visitors lives in one <noscript> in (landing)/page.tsx, so keep
+   the two lists in step.
+
+   Only elements that are visible at first paint are listed. Nested targets
+   (.problem-point, .pricing-badge) sit inside an already-hidden parent, so
+   their from() tweens are left alone. */
+
+/* Base position for the dashed step connector, previously an inline style on
+   the element. It has to be a class so the rule below can add scaleX to it. */
+.step-connector {
+  transform: translateY(-2px);
+  transform-origin: left center;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .hero-badge,
   .hero-heading,
@@ -72,12 +83,28 @@ html {
   .hero-cta,
   .hero-social,
   .hero-mockup,
-  .mockup-line {
+  .mockup-line,
+  .problem-card,
+  .problem-solution,
+  .step-card,
+  .feature-card,
+  .feature-lang,
+  .pricing-card,
+  .cta-heading,
+  .cta-copy,
+  .cta-button,
+  .cta-stat {
     opacity: 0;
   }
 
+  /* Stroke draws cannot use opacity. 400 comfortably exceeds the path length
+     and GSAP overwrites it with the exact getTotalLength() value on mount. */
   .hero-underline {
     stroke-dasharray: 400;
     stroke-dashoffset: 400;
+  }
+
+  .step-connector {
+    transform: translateY(-2px) scaleX(0);
   }
 }

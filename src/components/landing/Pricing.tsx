@@ -63,12 +63,11 @@ export function Pricing() {
         scrollTrigger: { trigger: scope, start: "top 60%" },
       });
 
-      tl.from(scope.querySelectorAll(".pricing-card"), {
-        y: 28,
-        opacity: 0,
-        duration: 0.5,
-        stagger: 0.15,
-      }).from(
+      tl.fromTo(
+        scope.querySelectorAll(".pricing-card"),
+        { y: 28, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, stagger: 0.15 },
+      ).from(
         scope.querySelectorAll(".pricing-badge"),
         { scale: 0, duration: 0.35, ease: "back.out(2.5)" },
         "-=0.15",

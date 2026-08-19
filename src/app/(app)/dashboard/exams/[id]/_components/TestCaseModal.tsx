@@ -144,7 +144,7 @@ export function TestCaseModal({
                 Hidden test case
               </p>
               <p className="text-xs text-slate dark:text-slate-400">
-                Students won't see this input/output during the exam
+                Students won&apos;t see this input/output during the exam
               </p>
             </div>
           </label>
@@ -237,7 +237,7 @@ export function TestCaseModal({
                 className="w-3.5 h-3.5 rounded accent-navy"
               />
               <span className="text-xs text-slate dark:text-slate-400">
-                Hidden — students won't see this case
+                Hidden — students won&apos;t see this case
               </span>
             </label>
           </div>
